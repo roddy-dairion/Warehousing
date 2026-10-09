@@ -1,0 +1,50 @@
+/* To learn more about Typescript configuration file: https://www.typescriptlang.org/docs/handbook/tsconfig-json.html. */
+/* To learn more about Angular compiler options: https://angular.dev/reference/configs/angular-compiler-options. */
+{
+  "compileOnSave": false,
+  "compilerOptions": {
+    "noImplicitOverride": true,
+    "noPropertyAccessFromIndexSignature": true,
+    "noImplicitReturns": true,
+    "noFallthroughCasesInSwitch": true,
+    "skipLibCheck": true,
+    "isolatedModules": true,
+    "experimentalDecorators": true,
+    "importHelpers": true,
+    "strict": true,
+    "noUncheckedIndexedAccess": true,
+    "paths": {
+      "@wh/shared": ["./projects/shared/src/public-api.ts"]
+    },
+    "target": "ES2022",
+    "module": "preserve"
+  },
+  "angularCompilerOptions": {
+    "enableI18nLegacyMessageIdFormat": false,
+    "strictInjectionParameters": true,
+    "strictInputAccessModifiers": true,
+    "strictTemplates": true,
+    "strictStandalone": true
+  },
+  "files": [],
+  "references": [
+    {
+      "path": "./projects/shared/tsconfig.lib.json"
+    },
+    {
+      "path": "./projects/shared/tsconfig.spec.json"
+    },
+    {
+      "path": "./projects/web/tsconfig.app.json"
+    },
+    {
+      "path": "./projects/web/tsconfig.spec.json"
+    },
+    {
+      "path": "./projects/mobile/tsconfig.app.json"
+    },
+    {
+      "path": "./projects/mobile/tsconfig.spec.json"
+    }
+  ]
+}

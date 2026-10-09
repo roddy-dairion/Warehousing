@@ -13,8 +13,8 @@ This is **not** a multi-tenant SaaS. Customers are business records that receive
 ```mermaid
 flowchart LR
   subgraph Clients
-    W["Web app<br/>Angular 22 + PrimeNG 22<br/>(admins, managers)"]
-    M["Mobile app<br/>Ionic 9 + Angular 22 + Capacitor 8<br/>(warehouse staff)"]
+    W["Web app<br/>Angular 21 + PrimeNG 21<br/>(admins, managers)"]
+    M["Mobile app<br/>Ionic 9 + Angular 21 + Capacitor 8<br/>(warehouse staff)"]
   end
   subgraph Server
     API["ASP.NET Core 10 Web API<br/>/api/v1 · JWT · permission policies"]
@@ -125,9 +125,9 @@ Alternative considered: the official `@capacitor/barcode-scanner` (Ionic/OutSyst
 
 Duplicate-scan protection works at two levels. Client side, identical codes within 1.5 s are ignored. Server side, every pick/receive confirmation carries a client-generated `scanId` (UUID) with a unique constraint. A scan only *identifies* the product; quantities are always validated by the API.
 
-## 7. Pinned versions (proposed; locked in Phase 2 via lock files)
+## 7. Pinned versions
 
-Checked against npm/NuGet on 2026-10-09.
+Frontend versions were installed and built on 2026-10-09. Backend versions are proposed and get locked once .NET can be restored.
 
 | Component | Version | Notes |
 |---|---|---|
@@ -135,15 +135,19 @@ Checked against npm/NuGet on 2026-10-09.
 | EF Core | 10.0.x | |
 | Npgsql.EntityFrameworkCore.PostgreSQL | 10.0.x | Matches EF Core 10 |
 | PostgreSQL | **17** (18 acceptable) | Needs ≥15 for `NULLS NOT DISTINCT` |
-| Node.js | 22 LTS (or 24 LTS) | 22.23 present on the dev VM |
-| Angular | **22.2.x** | |
-| PrimeNG / PrimeIcons / @primeuix/themes | **22.1.x** / 7.x / 3.0.x | PrimeNG 22 peer: Angular ^22.1 |
-| Ionic Angular | 9.0.x | Peer: Angular ≥18 |
-| Capacitor (core/android/ios) | **8.5.x** | |
-| @capacitor-mlkit/barcode-scanning | 8.2.x | |
-| @aparajita/capacitor-secure-storage | 8.0.x | Token storage |
+| Node.js | 22 LTS (≥22.12) or 24 LTS | `engines` enforced via `.npmrc` |
+| Angular | **21.2.x** | See the PrimeNG note below |
+| PrimeNG / @primeuix/themes / PrimeIcons | **21.1.10** (exact) / 2.0.3 / 7.0.0 | Last MIT-licensed PrimeNG |
+| Ionic Angular / ionicons | 9.0.7 / 8.1.0 | Standalone components from `@ionic/angular` |
+| Capacitor (core/android/ios/cli) | **8.5.3** | |
+| @capacitor-mlkit/barcode-scanning | 8.2.1 | |
+| @aparajita/capacitor-secure-storage | 8.0.1 | Token storage |
+| zone.js | 0.16.x | Mobile only (Ionic needs NgZone); web is zoneless |
+| TypeScript | 5.9.x | strict, `noUncheckedIndexedAccess`, strict templates |
 | Test: backend | xUnit v3, Testcontainers.PostgreSql, Respawn | Integration tests need Docker |
-| Test: frontend | Vitest (Angular default), Playwright for E2E | |
+| Test: frontend | Vitest 4 (Angular unit-test builder), Playwright for E2E | |
+
+**PrimeNG licence (decided 2026-10-09):** PrimeNG 22 moved to the commercial "PrimeUI" licence. It needs a key, otherwise it shows an "Invalid PrimeUI License" notice, and the free Community licence is limited to organisations under $1M revenue, fewer than 5 developers and fewer than 10 employees. PrimeNG 21.x is MIT, so the project uses **Angular 21 + PrimeNG 21.1.10, pinned exactly**. Angular 21 receives security fixes until roughly May 2027. Before then, decide whether to buy a PrimeUI licence or move to another UI kit.
 
 ## 8. Repository layout (Phase 2)
 
@@ -156,8 +160,8 @@ Warehousing/
 │   ├── src/Inventory.{Domain,Application,Infrastructure,Api}/
 │   └── tests/Inventory.{Tests,IntegrationTests}/
 ├── frontend/                     ← Angular workspace (npm)
-│   ├── angular.json
-│   └── projects/{shared,web,mobile}/
+│   ├── angular.json, capacitor.config.ts
+│   └── projects/{shared,web,mobile}/   (native android/ios under projects/mobile)
 ├── deploy/docker-compose.dev.yml ← PostgreSQL for local dev
 └── .github/workflows/ci.yml      ← build + test (optional)
 ```

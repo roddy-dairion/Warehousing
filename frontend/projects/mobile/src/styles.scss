@@ -1,0 +1,29 @@
+/* Ionic core + recommended utilities */
+@import '@ionic/angular/css/core.css';
+@import '@ionic/angular/css/normalize.css';
+@import '@ionic/angular/css/structure.css';
+@import '@ionic/angular/css/typography.css';
+@import '@ionic/angular/css/padding.css';
+@import '@ionic/angular/css/flex-utils.css';
+@import '@ionic/angular/css/display.css';
+
+:root {
+  --wh-slate: #1e2a33;
+  --wh-hazard: #f2b705;
+  --ion-font-family: 'IBM Plex Sans', system-ui, sans-serif;
+  --ion-text-color: #1e2a33;
+
+  --ion-color-primary: #0f5c7a;
+  --ion-color-primary-rgb: 15, 92, 122;
+  --ion-color-primary-contrast: #ffffff;
+  --ion-color-primary-contrast-rgb: 255, 255, 255;
+  --ion-color-primary-shade: #0d516b;
+  --ion-color-primary-tint: #276c87;
+
+  --ion-toolbar-background: #1e2a33;
+  --ion-toolbar-color: #ffffff;
+}
+
+body {
+  font-feature-settings: 'tnum' 1;
+}

@@ -1,0 +1,43 @@
+<div class="login">
+  <section class="intro" aria-hidden="true">
+    <span class="stripe"></span>
+    <p class="product">Warehousing</p>
+    <p class="tagline">Stock, receipts and dispatches for every branch, in one place.</p>
+  </section>
+
+  <section class="panel">
+    <form [formGroup]="form" (ngSubmit)="submit()" novalidate>
+      <h1>Sign in</h1>
+
+      @if (error(); as message) {
+        <p-message severity="error" role="alert">{{ message }}</p-message>
+      }
+
+      <div class="field">
+        <label for="email">Email</label>
+        <input pInputText id="email" type="email" formControlName="email" autocomplete="username" [invalid]="form.controls.email.invalid && form.controls.email.touched" />
+        @if (form.controls.email.invalid && form.controls.email.touched) {
+          <small class="hint-error">Enter your work email address.</small>
+        }
+      </div>
+
+      <div class="field">
+        <label for="password">Password</label>
+        <p-password
+          inputId="password"
+          formControlName="password"
+          [feedback]="false"
+          [toggleMask]="true"
+          autocomplete="current-password"
+          [fluid]="true"
+          [invalid]="form.controls.password.invalid && form.controls.password.touched"
+        />
+        @if (form.controls.password.invalid && form.controls.password.touched) {
+          <small class="hint-error">Enter your password.</small>
+        }
+      </div>
+
+      <p-button type="submit" label="Sign in" [loading]="submitting()" [fluid]="true" />
+    </form>
+  </section>
+</div>

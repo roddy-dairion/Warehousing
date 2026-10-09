@@ -1,0 +1,74 @@
+<div class="shell" [class.nav-open]="navOpen()">
+  <aside class="sidebar" aria-label="Main navigation">
+    <a class="brand" routerLink="/">
+      <span class="brand-mark" aria-hidden="true"></span>
+      <span class="brand-name">Warehousing</span>
+    </a>
+
+    <nav>
+      @for (group of nav(); track group.label) {
+        <div class="nav-group">
+          <h2 class="nav-group-label">{{ group.label }}</h2>
+          <ul>
+            @for (item of group.items; track item.route) {
+              <li>
+                <a
+                  [routerLink]="item.route"
+                  routerLinkActive="active"
+                  [routerLinkActiveOptions]="{ exact: item.route === '/' }"
+                  (click)="navOpen.set(false)"
+                >
+                  <i [class]="item.icon" aria-hidden="true"></i>
+                  <span>{{ item.label }}</span>
+                </a>
+              </li>
+            }
+          </ul>
+        </div>
+      }
+    </nav>
+  </aside>
+
+  <div class="scrim" (click)="navOpen.set(false)" aria-hidden="true"></div>
+
+  <div class="main">
+    <header class="topbar">
+      <p-button
+        class="menu-toggle"
+        icon="pi pi-bars"
+        [text]="true"
+        severity="secondary"
+        ariaLabel="Open navigation"
+        (onClick)="navOpen.set(!navOpen())"
+      />
+
+      <div class="warehouse">
+        <label for="warehouse-select">Warehouse</label>
+        @if (warehouses.available().length > 1) {
+          <p-select
+            inputId="warehouse-select"
+            [options]="warehouses.available()"
+            optionLabel="name"
+            optionValue="id"
+            placeholder="Select a warehouse"
+            [ngModel]="warehouses.current()?.id ?? null"
+            (ngModelChange)="onWarehouseChange($event)"
+          />
+        } @else {
+          <span id="warehouse-select" class="warehouse-name">{{ warehouses.current()?.name ?? 'No warehouse assigned' }}</span>
+        }
+      </div>
+
+      <button type="button" class="user" (click)="menu.toggle($event)" aria-haspopup="true">
+        <span class="avatar" aria-hidden="true">{{ initials() }}</span>
+        <span class="user-name">{{ user()?.displayName }}</span>
+        <i class="pi pi-angle-down" aria-hidden="true"></i>
+      </button>
+      <p-menu #menu [model]="userMenu" [popup]="true" appendTo="body" />
+    </header>
+
+    <main class="content">
+      <router-outlet />
+    </main>
+  </div>
+</div>

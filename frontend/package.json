@@ -1,0 +1,55 @@
+{
+  "name": "warehousing-frontend",
+  "version": "0.0.0",
+  "scripts": {
+    "ng": "ng",
+    "start": "ng serve web",
+    "build": "ng build web && ng build mobile",
+    "watch": "ng build --watch --configuration development",
+    "test": "ng test shared --watch=false && ng test web --watch=false && ng test mobile --watch=false",
+    "start:mobile": "ng serve mobile --port 4201",
+    "build:web": "ng build web",
+    "build:mobile": "ng build mobile && npx cap sync",
+    "lint:types": "tsc -p projects/web/tsconfig.app.json --noEmit && tsc -p projects/mobile/tsconfig.app.json --noEmit"
+  },
+  "private": true,
+  "packageManager": "npm@10.9.4",
+  "dependencies": {
+    "@angular/cdk": "~21.2.0",
+    "@angular/common": "^21.2.0",
+    "@angular/compiler": "^21.2.0",
+    "@angular/core": "^21.2.0",
+    "@angular/forms": "^21.2.0",
+    "@angular/platform-browser": "^21.2.0",
+    "@angular/router": "^21.2.0",
+    "@aparajita/capacitor-secure-storage": "^8.0.1",
+    "@capacitor-mlkit/barcode-scanning": "^8.2.1",
+    "@capacitor/android": "^8.5.3",
+    "@capacitor/core": "^8.5.3",
+    "@capacitor/ios": "^8.5.3",
+    "@capacitor/preferences": "^8.0.1",
+    "@fontsource/ibm-plex-sans": "^5.3.0",
+    "@ionic/angular": "^9.0.7",
+    "@primeuix/themes": "2.0.3",
+    "ionicons": "^8.1.0",
+    "primeicons": "^7.0.0",
+    "primeng": "21.1.10",
+    "rxjs": "~7.8.0",
+    "tslib": "^2.3.0",
+    "zone.js": "^0.16.3"
+  },
+  "devDependencies": {
+    "@angular/build": "^21.2.26",
+    "@angular/cli": "^21.2.26",
+    "@angular/compiler-cli": "^21.2.0",
+    "@capacitor/cli": "^8.5.3",
+    "jsdom": "^28.0.0",
+    "ng-packagr": "^21.2.0",
+    "prettier": "^3.8.1",
+    "typescript": "~5.9.2",
+    "vitest": "^4.0.8"
+  },
+  "engines": {
+    "node": "^22.12.0 || >=24.0.0"
+  }
+}

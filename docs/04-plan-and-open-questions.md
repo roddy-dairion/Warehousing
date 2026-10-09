@@ -36,6 +36,7 @@ The remaining questions can be decided by the phase noted in Part B.
 | Q19 | Should picked goods be **moved to a dispatch dock location** in the system, or stay on their bin as "reserved" until shipped? | Accuracy of bin counts during picking. | Stay on bin until shipped (v1) |
 | Q20 | **Minimum remaining shelf life** at dispatch (e.g. ≥ 30 days)? One global value or per customer/product? | FEFO allocation filter. | Global setting, default 0 days |
 | Q21 | How many **bins** roughly, and do bin labels with barcodes exist already? | Location seed/import, label printing. | CSV import of locations; labels printed outside the app |
+| Q22 | **Mobile app identity:** app name and bundle ID (e.g. `mu.<company>.warehouse`). The ID is permanent once published to the stores. | Store publishing. | Placeholder `com.warehousing.mobile` until confirmed |
 | Q18 | Existing **data to import** (products, barcodes, customers, opening stock)? Format? | Import tools; opening-balance movement type. | CSV import for products/customers + opening stock adjustment |
 
 ## Part B — Phased plan
@@ -43,7 +44,7 @@ The remaining questions can be decided by the phase noted in Part B.
 | Phase | Scope | Output / exit criteria |
 |---|---|---|
 | **1. Architecture** ✅ draft | These four documents | Reviewed; Q1–Q5 answered |
-| **2. Foundation** | `git init`; .NET 10 solution (6 projects); EF Core + Npgsql; docker-compose PostgreSQL; Identity + JWT + refresh tokens; permissions and warehouse access; ProblemDetails, Serilog, rate limiting, Swagger; Angular workspace (shared/web/mobile) with login + shell; CI build/test scripts | `dotnet build/test` and `ng build/test` pass; login works on web; migration `Initial` |
+| **2. Foundation** (frontend ✅ 2026-10-09; backend blocked on NuGet access) | `git init`; .NET 10 solution (6 projects); EF Core + Npgsql; docker-compose PostgreSQL; Identity + JWT + refresh tokens; permissions and warehouse access; ProblemDetails, Serilog, rate limiting, Swagger; Angular workspace (shared/web/mobile) with login + shell; CI build/test scripts | `dotnet build/test` and `ng build/test` pass; login works on web; migration `Initial` |
 | **3. Master data** | Warehouses + bin locations, users/roles/access, customers + addresses, categories, units + product pack units, products, barcodes, lots; CSV import (products, locations, customers) | CRUD APIs + web screens; authorization tests (warehouse access, permission denials) |
 | **4. Inventory engine** | Balances (bin × lot), append-only ledger (triggers), receipts with lot/expiry (draft/post/reverse), put-away and bin moves, adjustments with approval, FEFO reservation allocator, expiry alerts, idempotency middleware, reconciliation job | Integration tests #1, #6, #8, #10 from `Claude.md` §16 on real PostgreSQL, including parallel-request tests |
 | **5. Dispatch engine** | Dispatch CRUD, state machine, approve/reserve, pick + barcode validation, discrepancies, ready, ship (close/backorder), deliver + POD, cancel, history, delivery-note PDF | Integration tests #2–#5, #7, #9 incl. concurrent ship / double-submit |

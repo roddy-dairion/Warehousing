@@ -1,0 +1,41 @@
+
+@layer base, primeng, app;
+
+@layer base {
+  :root {
+    --wh-concrete: #f5f7f8; /* page background */
+    --wh-panel: #ffffff;
+    --wh-ink: #1e2a33; /* text */
+    --wh-muted: #5b6b77;
+    --wh-line: #d5dbe0;
+    --wh-slate: #1e2a33; /* sidebar */
+    --wh-slate-text: #c4ced6;
+    --wh-slate-muted: #8a9aa6;
+    --wh-hazard: #f2b705; /* floor-marking accent, used sparingly */
+    --p-font-family: 'IBM Plex Sans', system-ui, sans-serif;
+  }
+
+  *,
+  *::before,
+  *::after {
+    box-sizing: border-box;
+  }
+
+  html {
+    font-size: 16px;
+  }
+
+  body {
+    margin: 0;
+    font-family: 'IBM Plex Sans', system-ui, sans-serif;
+    font-feature-settings: 'tnum' 1; /* tabular figures: quantities line up */
+    background: var(--wh-concrete);
+    color: var(--wh-ink);
+    line-height: 1.5;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  a {
+    color: var(--p-primary-color);
+  }
+}

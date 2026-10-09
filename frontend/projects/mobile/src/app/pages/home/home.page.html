@@ -1,0 +1,33 @@
+<ion-header>
+  <ion-toolbar>
+    <ion-title>{{ ctx.current()?.name }}</ion-title>
+    <ion-buttons slot="end">
+      @if (ctx.available().length > 1) {
+        <ion-button routerLink="/select-warehouse" aria-label="Change warehouse">
+          <ion-icon slot="icon-only" name="swap-horizontal-outline" />
+        </ion-button>
+      }
+      <ion-button (click)="signOut()" aria-label="Sign out">
+        <ion-icon slot="icon-only" name="log-out-outline" />
+      </ion-button>
+    </ion-buttons>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content>
+  <p class="greeting ion-padding-horizontal">Signed in as {{ user()?.displayName }}</p>
+  <ion-list lines="full">
+    @for (a of actions(); track a.label) {
+      <ion-item button detail disabled>
+        <ion-icon slot="start" [name]="a.icon" aria-hidden="true" />
+        <ion-label>
+          <h2>{{ a.label }}</h2>
+          <p>{{ a.hint }}</p>
+        </ion-label>
+        <ion-note slot="end">Phase 7</ion-note>
+      </ion-item>
+    } @empty {
+      <p class="ion-padding">Your role has no warehouse actions yet. Ask a manager to check your permissions.</p>
+    }
+  </ion-list>
+</ion-content>

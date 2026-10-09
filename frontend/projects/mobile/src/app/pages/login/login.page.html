@@ -1,0 +1,47 @@
+<ion-content class="ion-padding">
+  <div class="wrap">
+    <div class="brand">
+      <span class="stripe" aria-hidden="true"></span>
+      <h1>Warehousing</h1>
+      <p>Sign in to scan, pick and receive.</p>
+    </div>
+
+    <form [formGroup]="form" (ngSubmit)="submit()" novalidate>
+      @if (error(); as message) {
+        <ion-text color="danger" role="alert"><p class="error">{{ message }}</p></ion-text>
+      }
+
+      <ion-input
+        label="Email"
+        labelPlacement="stacked"
+        fill="outline"
+        type="email"
+        inputmode="email"
+        autocomplete="username"
+        formControlName="email"
+        errorText="Enter your work email address."
+      />
+
+      <ion-input
+        label="Password"
+        labelPlacement="stacked"
+        fill="outline"
+        type="password"
+        autocomplete="current-password"
+        formControlName="password"
+        errorText="Enter your password."
+      >
+        <ion-input-password-toggle slot="end" />
+      </ion-input>
+
+      <ion-button type="submit" expand="block" size="large" [disabled]="submitting()">
+        @if (submitting()) {
+          <ion-spinner name="crescent" />
+        } @else {
+          Sign in
+        }
+      </ion-button>
+      <ion-note>An internet connection is required.</ion-note>
+    </form>
+  </div>
+</ion-content>

@@ -1,0 +1,40 @@
+.wrap {
+  max-width: 26rem;
+  margin: 0 auto;
+  padding-top: 12vh;
+  display: flex;
+  flex-direction: column;
+  gap: 2rem;
+}
+
+.brand h1 {
+  margin: 0.75rem 0 0.25rem;
+  font-size: 1.75rem;
+  font-weight: 600;
+}
+
+.brand p {
+  margin: 0;
+  color: var(--ion-color-medium);
+}
+
+.stripe {
+  display: block;
+  width: 6rem;
+  height: 0.625rem;
+  background: repeating-linear-gradient(-45deg, var(--wh-hazard) 0 8px, var(--wh-slate) 8px 16px);
+}
+
+form {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.error {
+  margin: 0;
+}
+
+ion-note {
+  text-align: center;
+}

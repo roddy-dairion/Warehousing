@@ -1,0 +1,99 @@
+.login {
+  display: grid;
+  grid-template-columns: minmax(18rem, 2fr) 3fr;
+  min-height: 100dvh;
+}
+
+.intro {
+  background: var(--wh-slate);
+  color: var(--wh-slate-text);
+  padding: 3rem;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  gap: 0.75rem;
+}
+
+.stripe {
+  display: block;
+  height: 0.75rem;
+  width: 8rem;
+  margin-bottom: 1.5rem;
+  background: repeating-linear-gradient(-45deg, var(--wh-hazard) 0 10px, var(--wh-slate) 10px 20px);
+}
+
+.product {
+  margin: 0;
+  color: #fff;
+  font-size: 2rem;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+
+.tagline {
+  margin: 0;
+  max-width: 24rem;
+  line-height: 1.5;
+}
+
+.panel {
+  display: grid;
+  place-items: center;
+  padding: 2rem 1rem;
+}
+
+form {
+  width: 100%;
+  max-width: 22rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+h1 {
+  margin: 0;
+  font-size: 1.5rem;
+  font-weight: 600;
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.375rem;
+
+  label {
+    font-size: 0.875rem;
+    font-weight: 500;
+  }
+
+  input {
+    width: 100%;
+  }
+}
+
+.hint-error {
+  color: var(--p-red-600);
+}
+
+@media (max-width: 720px) {
+  .login {
+    grid-template-columns: 1fr;
+    grid-template-rows: auto 1fr;
+  }
+
+  .intro {
+    padding: 1.5rem 1rem;
+  }
+
+  .stripe {
+    margin-bottom: 0.5rem;
+  }
+
+  .product {
+    font-size: 1.5rem;
+  }
+
+  .tagline {
+    display: none;
+  }
+}
