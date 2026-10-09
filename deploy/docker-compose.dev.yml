@@ -9,8 +9,8 @@ services:
     container_name: warehousing-postgres
     restart: unless-stopped
     ports:
-      # Host port 5433 avoids clashing with a PostgreSQL installed on Windows (5432).
-      - "5433:5432"
+      # Unusual host port to avoid clashing with other local PostgreSQL instances (5432, 5433...).
+      - "55432:5432"
     environment:
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: postgres
