@@ -1,0 +1,127 @@
+<section class="page">
+  <header class="page-header">
+    <div>
+      <h1>Categories and units</h1>
+      <p>Groupings for products, and the units stock is counted and packed in.</p>
+    </div>
+  </header>
+
+  @if (error(); as message) {
+    <wh-load-error [message]="message" (retry)="load()" />
+  }
+
+  <p-tabs value="categories">
+    <p-tablist>
+      <p-tab value="categories">Categories</p-tab>
+      <p-tab value="units">Units of measure</p-tab>
+    </p-tablist>
+    <p-tabpanels>
+      <p-tabpanel value="categories">
+        @if (canManage) {
+          <div class="form-actions" style="margin: 0 0 0.75rem"><p-button label="New category" icon="pi pi-plus" [outlined]="true" size="small" (onClick)="openCategory(null)" /></div>
+        }
+        <p-table [value]="categories()" [loading]="loading()" dataKey="id">
+          <ng-template #header>
+            <tr><th>Category</th><th>Code</th><th class="num">Products</th><th>Status</th><th></th></tr>
+          </ng-template>
+          <ng-template #body let-c>
+            <tr [class.inactive]="!c.isActive">
+              <td>{{ c.path }}</td>
+              <td class="code">{{ c.code }}</td>
+              <td class="num">{{ c.productCount }}</td>
+              <td><wh-status-tag [active]="c.isActive" /></td>
+              <td class="row-actions">
+                @if (canManage) {
+                  <p-button label="Edit" [text]="true" size="small" (onClick)="openCategory(c)" />
+                  <p-button [label]="c.isActive ? 'Deactivate' : 'Reactivate'" [text]="true" size="small" [severity]="c.isActive ? 'danger' : 'secondary'" (onClick)="toggleCategory(c)" [disabled]="saving()" />
+                }
+              </td>
+            </tr>
+          </ng-template>
+          <ng-template #emptymessage>
+            <tr><td colspan="5" class="empty">No categories yet. Categories are optional but make filtering and reports easier.</td></tr>
+          </ng-template>
+        </p-table>
+      </p-tabpanel>
+      <p-tabpanel value="units">
+        @if (canManage) {
+          <div class="form-actions" style="margin: 0 0 0.75rem"><p-button label="New unit" icon="pi pi-plus" [outlined]="true" size="small" (onClick)="openUnit(null)" /></div>
+        }
+        <p-table [value]="units()" [loading]="loading()" dataKey="id">
+          <ng-template #header>
+            <tr><th>Code</th><th>Name</th><th class="num">Decimals allowed</th><th>Status</th><th></th></tr>
+          </ng-template>
+          <ng-template #body let-u>
+            <tr [class.inactive]="!u.isActive">
+              <td class="code">{{ u.code }}</td>
+              <td>{{ u.name }}</td>
+              <td class="num">{{ u.decimals }}</td>
+              <td><wh-status-tag [active]="u.isActive" /></td>
+              <td class="row-actions">
+                @if (canManage) {
+                  <p-button label="Edit" [text]="true" size="small" (onClick)="openUnit(u)" />
+                  <p-button [label]="u.isActive ? 'Deactivate' : 'Reactivate'" [text]="true" size="small" [severity]="u.isActive ? 'danger' : 'secondary'" (onClick)="toggleUnit(u)" [disabled]="saving()" />
+                }
+              </td>
+            </tr>
+          </ng-template>
+        </p-table>
+      </p-tabpanel>
+    </p-tabpanels>
+  </p-tabs>
+</section>
+
+<p-dialog [header]="editingCategory() ? 'Edit category' : 'New category'" [visible]="categoryDialog()" (visibleChange)="categoryDialog.set($event)" [modal]="true"
+  [style]="{ width: '28rem' }" [breakpoints]="{ '640px': '95vw' }" [draggable]="false">
+  <form [formGroup]="categoryForm" (ngSubmit)="saveCategory()" novalidate id="catForm">
+    <div class="form-grid" style="grid-template-columns: 1fr">
+      <div class="field">
+        <label for="c-code">Code</label>
+        <input pInputText id="c-code" formControlName="code" placeholder="e.g. HYGIENE" autocomplete="off" />
+        <span class="hint">Used in imports.</span>
+        <wh-field-error [control]="categoryForm.controls.code" requiredText="Enter a code." patternText="Letters, digits and hyphens only." />
+      </div>
+      <div class="field">
+        <label for="c-name">Name</label>
+        <input pInputText id="c-name" formControlName="name" />
+        <wh-field-error [control]="categoryForm.controls.name" requiredText="Enter a name." />
+      </div>
+      <div class="field">
+        <label for="c-parent">Parent category</label>
+        <p-select inputId="c-parent" formControlName="parentId" [options]="parentChoices()" optionLabel="path" optionValue="id" placeholder="None (top level)" [showClear]="true" appendTo="body" />
+        <wh-field-error [control]="categoryForm.controls.parentId" />
+      </div>
+    </div>
+  </form>
+  <ng-template #footer>
+    <p-button label="Cancel" severity="secondary" [text]="true" (onClick)="categoryDialog.set(false)" />
+    <p-button (onClick)="saveCategory()" label="Save category" [loading]="saving()" />
+  </ng-template>
+</p-dialog>
+
+<p-dialog [header]="editingUnit() ? 'Edit unit' : 'New unit'" [visible]="unitDialog()" (visibleChange)="unitDialog.set($event)" [modal]="true"
+  [style]="{ width: '26rem' }" [breakpoints]="{ '640px': '95vw' }" [draggable]="false">
+  <form [formGroup]="unitForm" (ngSubmit)="saveUnit()" novalidate id="unitForm">
+    <div class="form-grid" style="grid-template-columns: 1fr">
+      <div class="field">
+        <label for="un-code">Code</label>
+        <input pInputText id="un-code" formControlName="code" placeholder="e.g. BAG" autocomplete="off" />
+        <wh-field-error [control]="unitForm.controls.code" requiredText="Enter a code." patternText="Up to 10 letters or digits." />
+      </div>
+      <div class="field">
+        <label for="un-name">Name</label>
+        <input pInputText id="un-name" formControlName="name" />
+        <wh-field-error [control]="unitForm.controls.name" requiredText="Enter a name." />
+      </div>
+      <div class="field">
+        <label for="un-dec">Decimals allowed</label>
+        <p-inputnumber inputId="un-dec" formControlName="decimals" [min]="0" [max]="3" [showButtons]="true" />
+        <span class="hint">0 for things counted whole (each, carton). 3 for weights and volumes (kg, L).</span>
+      </div>
+    </div>
+  </form>
+  <ng-template #footer>
+    <p-button label="Cancel" severity="secondary" [text]="true" (onClick)="unitDialog.set(false)" />
+    <p-button (onClick)="saveUnit()" label="Save unit" [loading]="saving()" />
+  </ng-template>
+</p-dialog>

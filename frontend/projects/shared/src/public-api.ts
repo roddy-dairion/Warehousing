@@ -13,3 +13,6 @@ export * from './lib/http/context';
 export * from './lib/http/interceptors';
 export * from './lib/http/query';
 export * from './lib/warehouse/warehouse-context.service';
+export * from './lib/models/master-data';
+export * from './lib/api/api-base';
+export * from './lib/api/master-data.api';

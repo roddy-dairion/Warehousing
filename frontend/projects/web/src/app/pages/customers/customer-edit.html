@@ -1,0 +1,142 @@
+<section class="page">
+  <a class="back-link" routerLink="/customers"><i class="pi pi-arrow-left" aria-hidden="true"></i> Customers</a>
+
+  @if (loading()) {
+    <p-skeleton height="2rem" width="20rem" />
+    <p-skeleton height="16rem" />
+  } @else if (loadError(); as message) {
+    <wh-load-error [message]="message" (retry)="load()" />
+  } @else {
+    <header class="page-header">
+      <div>
+        @if (customer(); as c) {
+          <h1>{{ c.companyName }}</h1>
+          <p><span class="code">{{ c.reference }}</span> · <wh-status-tag [active]="c.isActive" /></p>
+        } @else {
+          <h1>New customer</h1>
+          <p>Delivery addresses can be added after saving.</p>
+        }
+      </div>
+      @if (customer(); as c) {
+        @if (canManage) {
+          <p-button [label]="c.isActive ? 'Deactivate' : 'Reactivate'" [severity]="c.isActive ? 'danger' : 'secondary'" [outlined]="true" (onClick)="toggleActive()" />
+        }
+      }
+    </header>
+
+    <form class="panel" [formGroup]="form" (ngSubmit)="save()" novalidate>
+      <h2>Company</h2>
+      <div class="form-grid">
+        <div class="field">
+          <label for="reference">Reference</label>
+          <input pInputText id="reference" formControlName="reference" autocomplete="off" />
+          @if (isNew()) { <span class="hint">Your code for this customer. Cannot be changed later.</span> }
+          <wh-field-error [control]="form.controls.reference" requiredText="Enter a reference." />
+        </div>
+        <div class="field">
+          <label for="companyName">Company name</label>
+          <input pInputText id="companyName" formControlName="companyName" autocomplete="organization" />
+          <wh-field-error [control]="form.controls.companyName" requiredText="Enter the company name." />
+        </div>
+        <div class="field">
+          <label for="contactName">Contact person</label>
+          <input pInputText id="contactName" formControlName="contactName" autocomplete="name" />
+        </div>
+        <div class="field">
+          <label for="phone">Phone</label>
+          <input pInputText id="phone" formControlName="phone" type="tel" autocomplete="tel" />
+        </div>
+        <div class="field">
+          <label for="email">Email</label>
+          <input pInputText id="email" formControlName="email" type="email" autocomplete="email" />
+          <wh-field-error [control]="form.controls.email" />
+        </div>
+      </div>
+
+      <h2 style="margin-top: 1.5rem">Billing address</h2>
+      <div class="form-grid">
+        <div class="field"><label for="b1">Address line 1</label><input pInputText id="b1" formControlName="billingLine1" /></div>
+        <div class="field"><label for="b2">Address line 2</label><input pInputText id="b2" formControlName="billingLine2" /></div>
+        <div class="field"><label for="bc">City</label><input pInputText id="bc" formControlName="billingCity" /></div>
+        <div class="field"><label for="bco">Country</label><input pInputText id="bco" formControlName="billingCountry" /></div>
+        <div class="field span-all">
+          <label for="notes">Notes</label>
+          <textarea pTextarea id="notes" formControlName="notes" rows="2" [autoResize]="true"></textarea>
+        </div>
+      </div>
+      @if (canManage) {
+        <div class="form-actions">
+          @if (isNew()) { <p-button label="Cancel" severity="secondary" [text]="true" routerLink="/customers" /> }
+          <p-button type="submit" [label]="isNew() ? 'Create customer' : 'Save changes'" [loading]="saving()" />
+        </div>
+      }
+    </form>
+
+    @if (customer(); as c) {
+      <section class="panel" aria-labelledby="addr-title">
+        <div class="panel-header">
+          <h2 id="addr-title">Delivery addresses</h2>
+          @if (canManage) {
+            <p-button label="Add address" icon="pi pi-plus" [outlined]="true" size="small" (onClick)="openAddress(null)" />
+          }
+        </div>
+        <p-table [value]="c.addresses" dataKey="id">
+          <ng-template #header>
+            <tr><th>Label</th><th>Address</th><th>Contact</th><th></th><th></th></tr>
+          </ng-template>
+          <ng-template #body let-a>
+            <tr [class.inactive]="!a.isActive">
+              <td>{{ a.label }}</td>
+              <td>{{ addressLines(a) }}</td>
+              <td>{{ a.contactName ?? '' }} @if (a.phone) { <div class="muted">{{ a.phone }}</div> }</td>
+              <td>
+                @if (a.isDefault) { <p-tag value="Default" severity="info" /> }
+                @if (!a.isActive) { <p-tag value="Inactive" severity="secondary" /> }
+              </td>
+              <td class="row-actions">
+                @if (canManage) {
+                  <p-button label="Edit" [text]="true" size="small" (onClick)="openAddress(a)" />
+                  <p-button [label]="a.isActive ? 'Deactivate' : 'Reactivate'" [text]="true" size="small" [severity]="a.isActive ? 'danger' : 'secondary'" (onClick)="toggleAddress(a)" />
+                }
+              </td>
+            </tr>
+          </ng-template>
+          <ng-template #emptymessage>
+            <tr><td colspan="5" class="empty">No delivery addresses yet. Dispatches need at least one.</td></tr>
+          </ng-template>
+        </p-table>
+      </section>
+    }
+  }
+</section>
+
+<p-dialog [header]="editingAddress() ? 'Edit address' : 'New delivery address'" [visible]="addressDialog()" (visibleChange)="addressDialog.set($event)"
+  [modal]="true" [style]="{ width: '36rem' }" [breakpoints]="{ '640px': '95vw' }" [draggable]="false">
+  <form [formGroup]="addressForm" (ngSubmit)="saveAddress()" novalidate id="addressForm">
+    <div class="form-grid">
+      <div class="field span-all">
+        <label for="a-label">Label</label>
+        <input pInputText id="a-label" formControlName="label" placeholder="e.g. Head office, Shop Rose Hill" />
+        <wh-field-error [control]="addressForm.controls.label" requiredText="Enter a label." />
+      </div>
+      <div class="field span-all">
+        <label for="a-l1">Address line 1</label>
+        <input pInputText id="a-l1" formControlName="line1" />
+        <wh-field-error [control]="addressForm.controls.line1" requiredText="Enter the address." />
+      </div>
+      <div class="field span-all"><label for="a-l2">Address line 2</label><input pInputText id="a-l2" formControlName="line2" /></div>
+      <div class="field"><label for="a-city">City</label><input pInputText id="a-city" formControlName="city" /></div>
+      <div class="field"><label for="a-country">Country</label><input pInputText id="a-country" formControlName="country" /></div>
+      <div class="field"><label for="a-contact">Contact on site</label><input pInputText id="a-contact" formControlName="contactName" /></div>
+      <div class="field"><label for="a-phone">Phone</label><input pInputText id="a-phone" formControlName="phone" type="tel" /></div>
+      <div class="field-inline span-all">
+        <p-toggleswitch inputId="a-default" formControlName="isDefault" />
+        <label for="a-default">Default delivery address</label>
+      </div>
+    </div>
+  </form>
+  <ng-template #footer>
+    <p-button label="Cancel" severity="secondary" [text]="true" (onClick)="addressDialog.set(false)" />
+    <p-button (onClick)="saveAddress()" [label]="editingAddress() ? 'Save address' : 'Add address'" [loading]="saving()" />
+  </ng-template>
+</p-dialog>

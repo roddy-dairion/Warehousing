@@ -7,26 +7,24 @@ namespace Inventory.Infrastructure.Services;
 /// <summary>Warehouse scope of the current user, read from the database on each request (not from the token).</summary>
 internal sealed class WarehouseAccess(AppDbContext db, ICurrentUser currentUser) : IWarehouseAccess
 {
-    private IReadOnlyCollection<Guid>? _cached;
+    private IReadOnlyCollection<Guid>? _accessible;
+    private bool? _all;
 
     public async Task<IReadOnlyCollection<Guid>> GetAccessibleWarehouseIdsAsync(CancellationToken cancellationToken)
     {
-        if (_cached is not null) return _cached;
-        if (!currentUser.IsAuthenticated) return _cached = [];
+        if (_accessible is not null) return _accessible;
+        if (!currentUser.IsAuthenticated) return _accessible = [];
 
         var userId = currentUser.Id;
-        var user = await db.Users.AsNoTracking()
-            .Where(u => u.Id == userId && u.IsActive)
-            .Select(u => new { u.AllWarehouses })
-            .SingleOrDefaultAsync(cancellationToken);
-        if (user is null) return _cached = [];
+        var all = await LoadAllFlagAsync(cancellationToken);
+        if (all is null) return _accessible = [];
 
         var query = db.Warehouses.AsNoTracking().Where(w => w.IsActive);
-        if (!user.AllWarehouses)
+        if (all == false)
         {
             query = query.Where(w => db.UserWarehouseAccess.Any(a => a.UserId == userId && a.WarehouseId == w.Id));
         }
-        return _cached = await query.Select(w => w.Id).ToListAsync(cancellationToken);
+        return _accessible = await query.Select(w => w.Id).ToListAsync(cancellationToken);
     }
 
     public async Task EnsureCanAccessAsync(Guid warehouseId, CancellationToken cancellationToken)
@@ -36,5 +34,30 @@ internal sealed class WarehouseAccess(AppDbContext db, ICurrentUser currentUser)
         {
             throw new NotFoundException("Warehouse not found.");
         }
+    }
+
+    public async Task<bool> HasAllWarehousesAsync(CancellationToken cancellationToken) => await LoadAllFlagAsync(cancellationToken) == true;
+
+    public async Task EnsureCanManageAsync(Guid warehouseId, CancellationToken cancellationToken)
+    {
+        var all = await LoadAllFlagAsync(cancellationToken);
+        var exists = await db.Warehouses.AnyAsync(w => w.Id == warehouseId, cancellationToken);
+        var allowed = exists && (all == true ||
+            (all == false && await db.UserWarehouseAccess.AnyAsync(a => a.UserId == currentUser.Id && a.WarehouseId == warehouseId, cancellationToken)));
+        if (!allowed)
+        {
+            throw new NotFoundException("Warehouse not found.");
+        }
+    }
+
+    /// <summary>null = no active user; otherwise the user's AllWarehouses flag.</summary>
+    private async Task<bool?> LoadAllFlagAsync(CancellationToken cancellationToken)
+    {
+        if (_all is not null) return _all;
+        if (!currentUser.IsAuthenticated) return null;
+        var userId = currentUser.Id;
+        var flag = await db.Users.AsNoTracking().Where(u => u.Id == userId && u.IsActive).Select(u => (bool?)u.AllWarehouses).SingleOrDefaultAsync(cancellationToken);
+        _all = flag;
+        return flag;
     }
 }

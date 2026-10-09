@@ -1,0 +1,131 @@
+<section class="page">
+  <a class="back-link" routerLink="/warehouses"><i class="pi pi-arrow-left" aria-hidden="true"></i> Warehouses</a>
+
+  @if (loading()) {
+    <p-skeleton height="2rem" width="20rem" />
+    <p-skeleton height="12rem" />
+  } @else if (loadError(); as message) {
+    <wh-load-error [message]="message" (retry)="load()" />
+  } @else if (warehouse(); as w) {
+    <header class="page-header">
+      <div>
+        <h1>{{ w.name }}</h1>
+        <p><span class="code">{{ w.code }}</span> · <wh-status-tag [active]="w.isActive" /></p>
+      </div>
+      @if (canManage) {
+        <p-button [label]="w.isActive ? 'Deactivate' : 'Reactivate'" [severity]="w.isActive ? 'danger' : 'secondary'" [outlined]="true" (onClick)="toggleActive()" />
+      }
+    </header>
+
+    <form class="panel" [formGroup]="form" (ngSubmit)="save()" novalidate>
+      <h2>Details</h2>
+      <div class="form-grid">
+        <div class="field">
+          <label for="name">Name</label>
+          <input pInputText id="name" formControlName="name" />
+          <wh-field-error [control]="form.controls.name" requiredText="Enter a name." />
+        </div>
+        <div class="field"><label for="l1">Address line 1</label><input pInputText id="l1" formControlName="addressLine1" /></div>
+        <div class="field"><label for="l2">Address line 2</label><input pInputText id="l2" formControlName="addressLine2" /></div>
+        <div class="field"><label for="city">City</label><input pInputText id="city" formControlName="city" /></div>
+        <div class="field"><label for="country">Country</label><input pInputText id="country" formControlName="country" /></div>
+        <div class="field"><label for="phone">Phone</label><input pInputText id="phone" formControlName="phone" type="tel" /></div>
+        <div class="field">
+          <label for="email">Email</label>
+          <input pInputText id="email" formControlName="email" type="email" />
+          <wh-field-error [control]="form.controls.email" />
+        </div>
+      </div>
+      @if (canManage) {
+        <div class="form-actions"><p-button type="submit" label="Save changes" [loading]="saving()" /></div>
+      }
+    </form>
+
+    <section class="panel" aria-labelledby="bins-title">
+      <div class="panel-header">
+        <h2 id="bins-title">Bins and areas</h2>
+        @if (canManage) {
+          <div class="page-actions">
+            <p-button label="Import" icon="pi pi-upload" severity="secondary" [text]="true" size="small" routerLink="/import" [queryParams]="{ kind: 'locations' }" />
+            <p-button label="Add bin" icon="pi pi-plus" [outlined]="true" size="small" (onClick)="openBin(null)" />
+          </div>
+        }
+      </div>
+      <div class="toolbar" style="margin-bottom: 0.75rem">
+        <p-iconfield class="grow">
+          <p-inputicon styleClass="pi pi-search" />
+          <input pInputText type="search" placeholder="Bin code, zone or barcode" [(ngModel)]="binSearch" (ngModelChange)="onBinSearch()" aria-label="Search bins" />
+        </p-iconfield>
+        <p-select [options]="types" optionLabel="label" optionValue="value" [(ngModel)]="binType" (onChange)="applyBinFilters()" placeholder="All types" [showClear]="true" ariaLabel="Type" />
+        <p-select [options]="activeFilters" optionLabel="label" optionValue="value" [(ngModel)]="binActive" (onChange)="applyBinFilters()" placeholder="Active and inactive" [showClear]="true" ariaLabel="Status" />
+      </div>
+      <p-table #binTable [tableStyle]="{ 'min-width': '52rem' }" [value]="bins()" [lazy]="true" (onLazyLoad)="onBinsLazyLoad($event)" [loading]="binsLoading()" [paginator]="true"
+        [rows]="50" [rowsPerPageOptions]="[50, 100, 200]" [totalRecords]="binTotal()" sortField="code" [sortOrder]="1" dataKey="id"
+        [showCurrentPageReport]="true" currentPageReportTemplate="{first}–{last} of {totalRecords}">
+        <ng-template #header>
+          <tr>
+            <th pSortableColumn="code">Code <p-sortIcon field="code" /></th>
+            <th pSortableColumn="zone">Zone <p-sortIcon field="zone" /></th>
+            <th pSortableColumn="type">Type <p-sortIcon field="type" /></th>
+            <th>Barcode</th>
+            <th>Pickable</th>
+            <th>Status</th>
+            <th></th>
+          </tr>
+        </ng-template>
+        <ng-template #body let-b>
+          <tr [class.inactive]="!b.isActive">
+            <td class="code">{{ b.code }} @if (b.isSystem) { <p-tag value="Built-in" severity="secondary" /> }</td>
+            <td>{{ b.zone ?? '—' }}</td>
+            <td>{{ typeLabel(b.type) }}</td>
+            <td>{{ b.barcode ?? '—' }}</td>
+            <td>{{ b.isPickable ? 'Yes' : 'No' }}</td>
+            <td><wh-status-tag [active]="b.isActive" /></td>
+            <td class="row-actions">
+              @if (canManage) {
+                <p-button label="Edit" [text]="true" size="small" (onClick)="openBin(b)" />
+                @if (!b.isSystem) {
+                  <p-button [label]="b.isActive ? 'Deactivate' : 'Reactivate'" [text]="true" size="small" [severity]="b.isActive ? 'danger' : 'secondary'" (onClick)="toggleBin(b)" />
+                }
+              }
+            </td>
+          </tr>
+        </ng-template>
+        <ng-template #emptymessage>
+          <tr><td colspan="7" class="empty">{{ binSearch ? 'No bins match this search.' : 'No bins yet. Add them one by one or import a CSV file.' }}</td></tr>
+        </ng-template>
+      </p-table>
+    </section>
+  }
+</section>
+
+<p-dialog [header]="editingBin() ? 'Edit bin ' + editingBin()!.code : 'New bin'" [visible]="binDialog()" (visibleChange)="binDialog.set($event)" [modal]="true"
+  [style]="{ width: '30rem' }" [breakpoints]="{ '640px': '95vw' }" [draggable]="false">
+  <form [formGroup]="binForm" (ngSubmit)="saveBin()" novalidate id="binForm">
+    <div class="form-grid">
+      <div class="field">
+        <label for="b-code">Code</label>
+        <input pInputText id="b-code" formControlName="code" placeholder="e.g. A-01-03" autocomplete="off" />
+        <wh-field-error [control]="binForm.controls.code" requiredText="Enter a bin code." />
+      </div>
+      <div class="field">
+        <label for="b-type">Type</label>
+        <p-select inputId="b-type" formControlName="type" [options]="types" optionLabel="label" optionValue="value" appendTo="body" />
+      </div>
+      <div class="field"><label for="b-zone">Zone</label><input pInputText id="b-zone" formControlName="zone" placeholder="e.g. A" /></div>
+      <div class="field">
+        <label for="b-barcode">Label barcode</label>
+        <input pInputText id="b-barcode" formControlName="barcode" autocomplete="off" placeholder="Optional" />
+        <wh-field-error [control]="binForm.controls.barcode" />
+      </div>
+      <div class="field-inline span-all">
+        <p-toggleswitch inputId="b-pick" formControlName="isPickable" />
+        <label for="b-pick">Pickable: stock here can be reserved for dispatches</label>
+      </div>
+    </div>
+  </form>
+  <ng-template #footer>
+    <p-button label="Cancel" severity="secondary" [text]="true" (onClick)="binDialog.set(false)" />
+    <p-button (onClick)="saveBin()" [label]="editingBin() ? 'Save bin' : 'Add bin'" [loading]="saving()" />
+  </ng-template>
+</p-dialog>

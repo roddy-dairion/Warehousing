@@ -9,6 +9,7 @@ Web app (Angular + PrimeNG), warehouse mobile app (Ionic + Capacitor), ASP.NET C
   3. [Inventory rules & dispatch workflow](docs/03-inventory-and-dispatch.md)
   4. [Plan & open questions](docs/04-plan-and-open-questions.md)
   5. [Auth API contract](docs/05-auth-api-contract.md)
+  6. [Master data (Phase 3)](docs/06-master-data.md)
 
 ## Local development
 
@@ -35,4 +36,5 @@ Only PostgreSQL runs in Docker. The API and the Angular apps run directly from V
 
 * Phase 1 (architecture): done.
 * Phase 2 (foundation): done. Login, refresh, logout, permissions and warehouse access, web and mobile shells, 64 automated tests.
-* Next: Phase 3 (master data: users, warehouses and bins, customers, products, barcodes).
+* Phase 3 (master data): done. Users, warehouses and bins, customers, products with pack sizes, barcodes and images, CSV import.
+* Next: Phase 4 (inventory engine: stock balances, goods receipts, adjustments, bin moves, reservations).

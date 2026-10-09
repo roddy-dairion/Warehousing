@@ -1,3 +1,4 @@
+using Inventory.Domain.Products;
 using Inventory.Domain.Security;
 using Inventory.Domain.Warehouses;
 using Inventory.Infrastructure.Identity;
@@ -38,6 +39,8 @@ public sealed class DatabaseSeeder(
         await SyncPermissionsAsync(cancellationToken);
         await EnsureRolesAsync(cancellationToken);
         await EnsureWarehouseAsync(cancellationToken);
+        await EnsureSystemLocationsAsync(cancellationToken);
+        await EnsureUnitsAsync(cancellationToken);
         await EnsureAdminAsync(cancellationToken);
     }
 
@@ -78,6 +81,38 @@ public sealed class DatabaseSeeder(
         db.Warehouses.Add(Warehouse.Create(_options.WarehouseCode, _options.WarehouseName));
         await db.SaveChangesAsync(cancellationToken);
         logger.LogInformation("Created warehouse {Code}", _options.WarehouseCode);
+    }
+
+    /// <summary>Every warehouse has RECEIVING, DOCK and QUARANTINE areas.</summary>
+    private async Task EnsureSystemLocationsAsync(CancellationToken cancellationToken)
+    {
+        var warehouses = await db.Warehouses.Select(w => w.Id).ToListAsync(cancellationToken);
+        var existing = await db.WarehouseLocations.Where(l => l.IsSystem).Select(l => new { l.WarehouseId, l.Code }).ToListAsync(cancellationToken);
+        foreach (var warehouseId in warehouses)
+        {
+            foreach (var (code, type) in WarehouseLocation.SystemLocations)
+            {
+                if (!existing.Any(e => e.WarehouseId == warehouseId && e.Code == code))
+                {
+                    db.WarehouseLocations.Add(WarehouseLocation.CreateSystem(warehouseId, code, type));
+                }
+            }
+        }
+        await db.SaveChangesAsync(cancellationToken);
+    }
+
+    /// <summary>Standard units, created once. Users can rename or add more.</summary>
+    private async Task EnsureUnitsAsync(CancellationToken cancellationToken)
+    {
+        if (await db.UnitsOfMeasure.AnyAsync(cancellationToken)) return;
+        (string Code, string Name, int Decimals)[] units =
+        [
+            ("EA", "Each", 0), ("PK", "Pack", 0), ("BOX", "Box", 0), ("CTN", "Carton", 0), ("PAL", "Pallet", 0),
+            ("KG", "Kilogram", 3), ("G", "Gram", 0), ("L", "Litre", 3), ("ML", "Millilitre", 0), ("M", "Metre", 3),
+        ];
+        foreach (var (code, name, decimals) in units) db.UnitsOfMeasure.Add(UnitOfMeasure.Create(code, name, decimals));
+        await db.SaveChangesAsync(cancellationToken);
+        logger.LogInformation("Created {Count} standard units of measure", units.Length);
     }
 
     private async Task EnsureAdminAsync(CancellationToken cancellationToken)

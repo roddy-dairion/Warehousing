@@ -47,6 +47,9 @@ ios/DerivedData/
 *.p12
 *.mobileprovision
 
+# ---- Uploaded files (local dev storage) ----
+App_Data/
+
 # ---- Secrets / env ----
 .env
 .env.*

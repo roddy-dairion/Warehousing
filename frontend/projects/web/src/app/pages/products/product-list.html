@@ -1,0 +1,76 @@
+<section class="page">
+  <header class="page-header">
+    <div>
+      <h1>Products</h1>
+      <p>Search by SKU, name or scan a barcode into the search box.</p>
+    </div>
+    @if (canManage) {
+      <div class="page-actions">
+        <p-button label="Import" icon="pi pi-upload" severity="secondary" [outlined]="true" routerLink="/import" [queryParams]="{ kind: 'products' }" />
+        <p-button label="New product" icon="pi pi-plus" routerLink="/products/new" />
+      </div>
+    }
+  </header>
+
+  <div class="toolbar">
+    <p-iconfield class="grow">
+      <p-inputicon styleClass="pi pi-search" />
+      <input pInputText type="search" placeholder="SKU, name or barcode" [(ngModel)]="search" (ngModelChange)="onSearch()" aria-label="Search products" />
+    </p-iconfield>
+    <p-select [options]="categories()" optionLabel="path" optionValue="id" [(ngModel)]="categoryId" (onChange)="applyFilters()"
+      placeholder="All categories" [showClear]="true" [filter]="true" filterBy="path" appendTo="body" ariaLabel="Category" />
+    <p-select [options]="activeFilters" optionLabel="label" optionValue="value" [(ngModel)]="isActive" (onChange)="applyFilters()"
+      placeholder="Active and inactive" [showClear]="true" ariaLabel="Status" />
+  </div>
+
+  @if (error(); as message) {
+    <wh-load-error [message]="message" (retry)="load()" />
+  }
+
+  <p-table #table [tableStyle]="{ 'min-width': '52rem' }" [value]="rows()" [lazy]="true" (onLazyLoad)="onLazyLoad($event)" [loading]="loading()" [paginator]="true"
+    [rows]="25" [rowsPerPageOptions]="[25, 50, 100]" [totalRecords]="total()" sortField="sku" [sortOrder]="1"
+    dataKey="id" [rowHover]="true" responsiveLayout="scroll" [showCurrentPageReport]="true" currentPageReportTemplate="{first}–{last} of {totalRecords}">
+    <ng-template #header>
+      <tr>
+        <th pSortableColumn="sku">SKU <p-sortIcon field="sku" /></th>
+        <th pSortableColumn="name">Name <p-sortIcon field="name" /></th>
+        <th>Category</th>
+        <th>Unit</th>
+        <th>Barcode</th>
+        <th class="num" pSortableColumn="minStockQty">Min. stock <p-sortIcon field="minStockQty" /></th>
+        <th>Tracking</th>
+        <th>Status</th>
+      </tr>
+    </ng-template>
+    <ng-template #body let-p>
+      <tr class="clickable-row" [class.inactive]="!p.isActive" (click)="open(p)" (keydown.enter)="open(p)" tabindex="0">
+        <td class="code">{{ p.sku }}</td>
+        <td>{{ p.name }} @if (p.hasImage) { <i class="pi pi-image muted inline-icon" title="Has an image" aria-label="Has an image"></i> }</td>
+        <td>{{ p.categoryName ?? '—' }}</td>
+        <td>{{ p.baseUnitCode }}</td>
+        <td>{{ p.primaryBarcode ?? '—' }}</td>
+        <td class="num">{{ p.minStockQty ?? '—' }}</td>
+        <td>
+          <span class="chips">
+            @if (p.isLotTracked) { <p-tag value="Lot" severity="info" /> }
+            @if (p.hasExpiry) { <p-tag value="Expiry" severity="warn" /> }
+          </span>
+        </td>
+        <td><wh-status-tag [active]="p.isActive" /></td>
+      </tr>
+    </ng-template>
+    <ng-template #emptymessage>
+      <tr>
+        <td colspan="8" class="empty">
+          @if (search || categoryId) {
+            No products match these filters.
+          } @else if (canManage) {
+            No products yet. Create one, or import your product list from a CSV file.
+          } @else {
+            No products yet.
+          }
+        </td>
+      </tr>
+    </ng-template>
+  </p-table>
+</section>

@@ -65,7 +65,24 @@ public sealed class AuthorizationTests(ApiFactory api) : IClassFixture<ApiFactor
         codes.ShouldContain("MAIN");
         codes.ShouldContain("EAST");
         codes.ShouldNotContain("CLOSED");
+
+        // Administrators can still open and list inactive warehouses for management (to reactivate them).
+        (await client.GetAsync($"/api/v1/warehouses/{closed}", Ct)).StatusCode.ShouldBe(HttpStatusCode.OK);
+        var all = (await client.GetFromJsonAsync<List<WarehouseDto>>("/api/v1/warehouses?includeInactive=true", Ct))!.Select(w => w.Code);
+        all.ShouldContain("CLOSED");
+    }
+
+    [Fact]
+    public async Task Staff_cannot_see_inactive_warehouses_even_when_granted()
+    {
+        var closed = await api.CreateWarehouseAsync("SHUT", active: false);
+        var email = await api.CreateUserAsync(RoleCodes.Operator, closed);
+        var (client, auth) = await api.SignInAsync(email);
+
+        auth.User.Warehouses.ShouldBeEmpty();
         (await client.GetAsync($"/api/v1/warehouses/{closed}", Ct)).StatusCode.ShouldBe(HttpStatusCode.NotFound);
+        var list = (await client.GetFromJsonAsync<List<WarehouseDto>>("/api/v1/warehouses?includeInactive=true", Ct))!;
+        list.ShouldBeEmpty();
     }
 
     [Fact]

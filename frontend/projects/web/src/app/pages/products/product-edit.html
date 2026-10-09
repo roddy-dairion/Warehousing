@@ -1,0 +1,212 @@
+<section class="page">
+  <a class="back-link" routerLink="/products"><i class="pi pi-arrow-left" aria-hidden="true"></i> Products</a>
+
+  @if (loading()) {
+    <p-skeleton height="2rem" width="20rem" />
+    <p-skeleton height="18rem" />
+  } @else if (loadError(); as message) {
+    <wh-load-error [message]="message" (retry)="load()" />
+  } @else {
+    <header class="page-header">
+      <div>
+        @if (product(); as p) {
+          <h1>{{ p.sku }} · {{ p.name }}</h1>
+          <p><wh-status-tag [active]="p.isActive" /></p>
+        } @else {
+          <h1>New product</h1>
+          <p>Pack sizes, extra barcodes and an image can be added after saving.</p>
+        }
+      </div>
+      @if (product(); as p) {
+        @if (canManage) {
+          <div class="page-actions">
+            <p-button [label]="p.isActive ? 'Deactivate' : 'Reactivate'" [severity]="p.isActive ? 'danger' : 'secondary'" [outlined]="true" (onClick)="toggleActive()" [disabled]="busy()" />
+          </div>
+        }
+      }
+    </header>
+
+    <div class="layout">
+      <div class="side-main" style="display: flex; flex-direction: column; gap: 1rem">
+        <form class="panel" [formGroup]="form" (ngSubmit)="save()" novalidate>
+          <h2>Details</h2>
+          <div class="form-grid">
+            <div class="field">
+              <label for="sku">SKU</label>
+              <input pInputText id="sku" formControlName="sku" autocomplete="off" />
+              @if (isNew()) { <span class="hint">Cannot be changed later. Saved in capitals.</span> }
+              <wh-field-error [control]="form.controls.sku" requiredText="Enter a SKU." />
+            </div>
+            <div class="field">
+              <label for="name">Name</label>
+              <input pInputText id="name" formControlName="name" />
+              <wh-field-error [control]="form.controls.name" requiredText="Enter a name." />
+            </div>
+            <div class="field">
+              <label for="category">Category</label>
+              <p-select inputId="category" formControlName="categoryId" [options]="categories()" optionLabel="path" optionValue="id"
+                placeholder="No category" [showClear]="true" [filter]="true" filterBy="path" appendTo="body" />
+            </div>
+            <div class="field">
+              <label for="baseUnit">Base unit</label>
+              <p-select inputId="baseUnit" formControlName="baseUnitId" [options]="activeUnits()" optionLabel="label" optionValue="id" appendTo="body" [filter]="true" filterBy="label" />
+              <span class="hint">Stock is always counted in this unit.</span>
+              <wh-field-error [control]="form.controls.baseUnitId" requiredText="Choose a base unit." />
+            </div>
+            <div class="field">
+              <label for="minStock">Minimum stock</label>
+              <p-inputnumber inputId="minStock" formControlName="minStockQty" [min]="0" [maxFractionDigits]="baseUnit()?.decimals ?? 0" [useGrouping]="false"
+                [suffix]="baseUnit() ? ' ' + baseUnit()!.code : ''" />
+              <span class="hint">Shown as a low-stock alert below this level.</span>
+              <wh-field-error [control]="form.controls.minStockQty" />
+            </div>
+            @if (isNew()) {
+              <div class="field">
+                <label for="barcode">Barcode (optional)</label>
+                <input pInputText id="barcode" formControlName="barcode" autocomplete="off" placeholder="Scan or type" />
+                <wh-field-error [control]="form.controls.barcode" />
+              </div>
+            }
+            <div class="field span-all">
+              <label for="description">Description</label>
+              <textarea pTextarea id="description" formControlName="description" rows="2" [autoResize]="true"></textarea>
+            </div>
+            <div class="field-inline">
+              <p-toggleswitch inputId="lot" formControlName="isLotTracked" />
+              <label for="lot">Track batch / lot numbers</label>
+            </div>
+            <div class="field-inline">
+              <p-toggleswitch inputId="expiry" formControlName="hasExpiry" />
+              <label for="expiry">Has expiry dates (picks earliest expiry first)</label>
+            </div>
+            @if (form.controls.hasExpiry.value) {
+              <div class="field">
+                <label for="shelfLife">Shelf life (days, optional)</label>
+                <p-inputnumber inputId="shelfLife" formControlName="shelfLifeDays" [min]="1" [max]="36500" [useGrouping]="false" />
+              </div>
+            }
+          </div>
+          @if (canManage) {
+            <div class="form-actions">
+              @if (isNew()) { <p-button label="Cancel" severity="secondary" [text]="true" routerLink="/products" /> }
+              <p-button type="submit" [label]="isNew() ? 'Create product' : 'Save changes'" [loading]="saving()" />
+            </div>
+          }
+        </form>
+
+        @if (product(); as p) {
+          <section class="panel" aria-labelledby="packs-title">
+            <h2 id="packs-title">Pack sizes</h2>
+            <p-table [value]="p.units" dataKey="id">
+              <ng-template #header>
+                <tr><th>Unit</th><th>Contains</th><th></th></tr>
+              </ng-template>
+              <ng-template #body let-u>
+                <tr>
+                  <td><span class="code">{{ u.unitCode }}</span><span class="muted"> · {{ u.unitName }}</span></td>
+                  <td>
+                    @if (canManage) {
+                      <p-inputnumber [ngModel]="u.factorToBase" (ngModelChange)="pendingFactor[u.id] = $event" (onBlur)="commitFactor(u.id, u.factorToBase)"
+                        [min]="0.000001" [maxFractionDigits]="6" [useGrouping]="false" [suffix]="' ' + p.baseUnitCode" [inputStyle]="{ width: '9rem' }" [ariaLabel]="'Base units per ' + u.unitCode" />
+                    } @else {
+                      {{ u.factorToBase }} {{ p.baseUnitCode }}
+                    }
+                  </td>
+                  <td class="row-actions">
+                    @if (canManage) {
+                      <p-button icon="pi pi-trash" [text]="true" severity="danger" (onClick)="removeUnit(u.id, u.unitCode)" [ariaLabel]="'Remove ' + u.unitCode" pTooltip="Remove" />
+                    }
+                  </td>
+                </tr>
+              </ng-template>
+              <ng-template #emptymessage>
+                <tr><td colspan="3" class="empty">Only single {{ p.baseUnitCode }}. Add a pack size if this product also comes in cartons, boxes or pallets.</td></tr>
+              </ng-template>
+            </p-table>
+            @if (canManage) {
+              <form class="add-row" [formGroup]="unitForm" (ngSubmit)="addUnit()" novalidate>
+                <div class="field">
+                  <label for="packUnit">Pack unit</label>
+                  <p-select inputId="packUnit" formControlName="unitId" [options]="packChoices()" optionLabel="label" optionValue="id" placeholder="Choose" appendTo="body" />
+                  <wh-field-error [control]="unitForm.controls.unitId" requiredText="Choose a unit." />
+                </div>
+                <div class="field">
+                  <label for="factor">Contains ({{ p.baseUnitCode }})</label>
+                  <p-inputnumber inputId="factor" formControlName="factorToBase" [min]="0.000001" [maxFractionDigits]="6" [useGrouping]="false" placeholder="e.g. 12" />
+                  <wh-field-error [control]="unitForm.controls.factorToBase" requiredText="Enter how many it contains." />
+                </div>
+                <p-button type="submit" label="Add pack size" icon="pi pi-plus" [outlined]="true" [disabled]="busy()" styleClass="add-btn" [style]="{ 'margin-top': '1.6rem' }" />
+              </form>
+            }
+          </section>
+
+          <section class="panel" aria-labelledby="barcodes-title">
+            <h2 id="barcodes-title">Barcodes</h2>
+            <p-table [value]="p.barcodes" dataKey="id">
+              <ng-template #header>
+                <tr><th>Barcode</th><th>Identifies</th><th></th><th></th></tr>
+              </ng-template>
+              <ng-template #body let-b>
+                <tr>
+                  <td class="code">{{ b.value }}</td>
+                  <td>{{ b.factorToBase === 1 ? '1 ' + b.unitCode : '1 ' + b.unitCode + ' = ' + b.factorToBase + ' ' + p.baseUnitCode }}</td>
+                  <td>@if (b.isPrimary) { <p-tag value="Primary" severity="info" /> }</td>
+                  <td class="row-actions">
+                    @if (canManage) {
+                      @if (!b.isPrimary) {
+                        <p-button label="Make primary" [text]="true" size="small" (onClick)="setPrimary(b.id)" [disabled]="busy()" />
+                      }
+                      <p-button icon="pi pi-trash" [text]="true" severity="danger" (onClick)="removeBarcode(b.id, b.value)" [ariaLabel]="'Remove barcode ' + b.value" pTooltip="Remove" />
+                    }
+                  </td>
+                </tr>
+              </ng-template>
+              <ng-template #emptymessage>
+                <tr><td colspan="4" class="empty">No barcodes. Products without a barcode can still be found by SKU or name.</td></tr>
+              </ng-template>
+            </p-table>
+            @if (canManage) {
+              <form class="add-row" [formGroup]="barcodeForm" (ngSubmit)="addBarcode()" novalidate>
+                <div class="field">
+                  <label for="newBarcode">Barcode</label>
+                  <input pInputText id="newBarcode" formControlName="value" autocomplete="off" placeholder="Scan or type" />
+                  <wh-field-error [control]="barcodeForm.controls.value" requiredText="Enter or scan a barcode." />
+                </div>
+                <div class="field">
+                  <label for="barcodeUnit">Printed on</label>
+                  <p-select inputId="barcodeUnit" formControlName="unitId" [options]="barcodeUnitChoices()" optionLabel="label" optionValue="id" appendTo="body" />
+                </div>
+                <p-button type="submit" label="Add barcode" icon="pi pi-plus" [outlined]="true" [disabled]="busy()" [style]="{ 'margin-top': '1.6rem' }" />
+              </form>
+            }
+          </section>
+        }
+      </div>
+
+      @if (product(); as p) {
+        <aside class="side">
+          <section class="panel" aria-labelledby="image-title">
+            <h2 id="image-title">Image</h2>
+            <div class="image-box">
+              @if (imageUrl(); as url) {
+                <img [src]="url" [alt]="p.name" />
+              } @else {
+                <span class="muted">No image</span>
+              }
+            </div>
+            @if (canManage) {
+              <div class="form-actions" style="justify-content: flex-start">
+                <input #file type="file" class="file-input" accept="image/jpeg,image/png,image/webp" (change)="onImageSelected($event)" id="imageFile" />
+                <p-button [label]="p.hasImage ? 'Replace' : 'Upload'" icon="pi pi-upload" [outlined]="true" size="small" (onClick)="file.click()" [disabled]="busy()" />
+                @if (p.hasImage) {
+                  <p-button label="Remove" [text]="true" severity="danger" size="small" (onClick)="removeImage()" [disabled]="busy()" />
+                }
+              </div>
+              <p class="muted" style="font-size: 0.8125rem; margin: 0.5rem 0 0">JPEG, PNG or WebP, up to 2 MB.</p>
+            }
+          </section>
+        </aside>
+      }
+    </div>
+  }
+</section>

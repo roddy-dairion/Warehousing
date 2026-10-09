@@ -46,12 +46,12 @@ public sealed partial class Warehouse : Entity, IAuditable
 
     public void SetContact(string? addressLine1, string? addressLine2, string? city, string? country, string? phone, string? email)
     {
-        AddressLine1 = Clean(addressLine1);
-        AddressLine2 = Clean(addressLine2);
-        City = Clean(city);
-        Country = Clean(country);
-        Phone = Clean(phone);
-        Email = Clean(email);
+        AddressLine1 = Text.Optional(addressLine1, 200, "warehouse.address_invalid", "Address line 1");
+        AddressLine2 = Text.Optional(addressLine2, 200, "warehouse.address_invalid", "Address line 2");
+        City = Text.Optional(city, 100, "warehouse.city_invalid", "City");
+        Country = Text.Optional(country, 100, "warehouse.country_invalid", "Country");
+        Phone = Text.Optional(phone, 40, "warehouse.phone_invalid", "Phone");
+        Email = Text.Optional(email, 256, "warehouse.email_invalid", "Email");
     }
 
     public void Activate() => IsActive = true;
@@ -67,8 +67,6 @@ public sealed partial class Warehouse : Entity, IAuditable
         }
         Code = code;
     }
-
-    private static string? Clean(string? value) => string.IsNullOrWhiteSpace(value) ? null : value.Trim();
 
     [GeneratedRegex("^[A-Z0-9][A-Z0-9-]{1,15}$")]
     private static partial Regex CodePattern();

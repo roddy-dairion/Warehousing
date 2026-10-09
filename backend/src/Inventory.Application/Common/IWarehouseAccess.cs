@@ -11,4 +11,13 @@ public interface IWarehouseAccess
 
     /// <summary>Throws <see cref="NotFoundException"/> when the warehouse is unknown, inactive or not accessible.</summary>
     Task EnsureCanAccessAsync(Guid warehouseId, CancellationToken cancellationToken);
+
+    /// <summary>True when the user may act in every warehouse (administrators).</summary>
+    Task<bool> HasAllWarehousesAsync(CancellationToken cancellationToken);
+
+    /// <summary>
+    /// For management screens: like <see cref="EnsureCanAccessAsync"/> but also allows inactive warehouses
+    /// the user is entitled to (all for administrators, explicitly granted ones otherwise).
+    /// </summary>
+    Task EnsureCanManageAsync(Guid warehouseId, CancellationToken cancellationToken);
 }

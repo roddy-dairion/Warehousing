@@ -30,7 +30,9 @@ export const NAVIGATION: NavGroup[] = [
     items: [
       { label: 'Products', icon: 'pi pi-tags', route: '/products', permissions: [Permissions.ProductsRead] },
       { label: 'Customers', icon: 'pi pi-building', route: '/customers', permissions: [Permissions.CustomersManage, Permissions.DispatchesCreate] },
-      { label: 'Warehouses', icon: 'pi pi-warehouse', route: '/warehouses', permissions: [Permissions.WarehousesManage] },
+      { label: 'Categories and units', icon: 'pi pi-sitemap', route: '/catalog', permissions: [Permissions.ProductsManage] },
+      { label: 'Warehouses and bins', icon: 'pi pi-warehouse', route: '/warehouses', permissions: [Permissions.WarehousesManage] },
+      { label: 'Import', icon: 'pi pi-upload', route: '/import', permissions: [Permissions.ProductsManage, Permissions.CustomersManage, Permissions.WarehousesManage] },
     ],
   },
   {

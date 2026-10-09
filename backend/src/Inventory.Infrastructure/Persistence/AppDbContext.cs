@@ -1,5 +1,8 @@
 using Inventory.Application.Common;
 using Inventory.Domain.Auditing;
+using Inventory.Domain.Customers;
+using Inventory.Domain.Files;
+using Inventory.Domain.Products;
 using Inventory.Domain.Warehouses;
 using Inventory.Infrastructure.Identity;
 using Microsoft.AspNetCore.Identity;
@@ -12,6 +15,13 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options)
     : IdentityDbContext<AppUser, AppRole, Guid>(options), IApplicationDbContext
 {
     public DbSet<Warehouse> Warehouses => Set<Warehouse>();
+    public DbSet<WarehouseLocation> WarehouseLocations => Set<WarehouseLocation>();
+    public DbSet<Customer> Customers => Set<Customer>();
+    public DbSet<ProductCategory> ProductCategories => Set<ProductCategory>();
+    public DbSet<UnitOfMeasure> UnitsOfMeasure => Set<UnitOfMeasure>();
+    public DbSet<Product> Products => Set<Product>();
+    public DbSet<ProductBarcode> ProductBarcodes => Set<ProductBarcode>();
+    public DbSet<StoredFile> StoredFiles => Set<StoredFile>();
     public DbSet<AuditLog> AuditLogs => Set<AuditLog>();
     public DbSet<Permission> Permissions => Set<Permission>();
     public DbSet<RolePermission> RolePermissions => Set<RolePermission>();

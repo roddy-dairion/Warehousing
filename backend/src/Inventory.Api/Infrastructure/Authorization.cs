@@ -4,25 +4,28 @@ using Microsoft.Extensions.Options;
 
 namespace Inventory.Api.Infrastructure;
 
-/// <summary>Requires the caller to hold a permission, e.g. <c>[HasPermission(Permissions.DispatchesApprove)]</c>.</summary>
+/// <summary>
+/// Requires the caller to hold at least one of the permissions, e.g. <c>[HasPermission(Permissions.DispatchesApprove)]</c>.
+/// Several attributes on the same target must all be satisfied.
+/// </summary>
 [AttributeUsage(AttributeTargets.Class | AttributeTargets.Method, AllowMultiple = true)]
-public sealed class HasPermissionAttribute(string permission) : AuthorizeAttribute(PolicyPrefix + permission)
+public sealed class HasPermissionAttribute(params string[] permissions) : AuthorizeAttribute(PolicyPrefix + string.Join('|', permissions))
 {
     public const string PolicyPrefix = "perm:";
 
-    public string Permission { get; } = permission;
+    public IReadOnlyList<string> Permissions { get; } = permissions;
 }
 
-internal sealed class PermissionRequirement(string permission) : IAuthorizationRequirement
+internal sealed class PermissionRequirement(IReadOnlyList<string> anyOf) : IAuthorizationRequirement
 {
-    public string Permission { get; } = permission;
+    public IReadOnlyList<string> AnyOf { get; } = anyOf;
 }
 
 internal sealed class PermissionHandler : AuthorizationHandler<PermissionRequirement>
 {
     protected override Task HandleRequirementAsync(AuthorizationHandlerContext context, PermissionRequirement requirement)
     {
-        if (context.User.HasClaim(CustomClaims.Permission, requirement.Permission))
+        if (requirement.AnyOf.Any(p => context.User.HasClaim(CustomClaims.Permission, p)))
         {
             context.Succeed(requirement);
         }
@@ -39,7 +42,7 @@ internal sealed class PermissionPolicyProvider(IOptions<AuthorizationOptions> op
         {
             return new AuthorizationPolicyBuilder()
                 .RequireAuthenticatedUser()
-                .AddRequirements(new PermissionRequirement(policyName[HasPermissionAttribute.PolicyPrefix.Length..]))
+                .AddRequirements(new PermissionRequirement(policyName[HasPermissionAttribute.PolicyPrefix.Length..].Split('|')))
                 .Build();
         }
         return await base.GetPolicyAsync(policyName);

@@ -94,6 +94,12 @@ try
     var app = builder.Build();
 
     app.UseForwardedHeaders();
+    // Request logging wraps the exception handler so it records the final status code (e.g. 404), not 500.
+    app.UseSerilogRequestLogging(o =>
+    {
+        // Path only: query strings are not logged.
+        o.MessageTemplate = "HTTP {RequestMethod} {RequestPath} responded {StatusCode} in {Elapsed:0} ms";
+    });
     app.UseExceptionHandler();
     app.UseStatusCodePages();
     if (!app.Environment.IsDevelopment())
@@ -101,12 +107,6 @@ try
         app.UseHsts();
         app.UseHttpsRedirection();
     }
-
-    app.UseSerilogRequestLogging(o =>
-    {
-        // Path only: query strings are not logged.
-        o.MessageTemplate = "HTTP {RequestMethod} {RequestPath} responded {StatusCode} in {Elapsed:0} ms";
-    });
 
     if (app.Environment.IsDevelopment())
     {

@@ -83,6 +83,7 @@ public class ApiFactory : WebApplicationFactory<Program>, IAsyncLifetime
         var w = Warehouse.Create(code, $"{code} warehouse");
         if (!active) w.Deactivate();
         db.Warehouses.Add(w);
+        foreach (var (binCode, type) in WarehouseLocation.SystemLocations) db.WarehouseLocations.Add(WarehouseLocation.CreateSystem(w.Id, binCode, type));
         await db.SaveChangesAsync();
         return w.Id;
     });

@@ -1,0 +1,127 @@
+<section class="page">
+  <header class="page-header">
+    <div>
+      <h1>Users</h1>
+      <p>Staff accounts, their roles and which warehouses they can work in.</p>
+    </div>
+    <p-button label="New user" icon="pi pi-plus" (onClick)="openNew()" />
+  </header>
+
+  <div class="toolbar">
+    <p-iconfield class="grow">
+      <p-inputicon styleClass="pi pi-search" />
+      <input pInputText type="search" placeholder="Name or email" [(ngModel)]="search" (ngModelChange)="onSearch()" aria-label="Search users" />
+    </p-iconfield>
+    <p-select [options]="roleOptions()" optionLabel="label" optionValue="value" [(ngModel)]="role" (onChange)="applyFilters()" placeholder="All roles" [showClear]="true" ariaLabel="Role" />
+    <p-select [options]="activeFilters" optionLabel="label" optionValue="value" [(ngModel)]="isActive" (onChange)="applyFilters()" placeholder="Active and inactive" [showClear]="true" ariaLabel="Status" />
+  </div>
+
+  @if (error(); as message) {
+    <wh-load-error [message]="message" (retry)="load()" />
+  }
+
+  <p-table #table [tableStyle]="{ 'min-width': '52rem' }" [value]="rows()" [lazy]="true" (onLazyLoad)="onLazyLoad($event)" [loading]="loading()" [paginator]="true" [rows]="25"
+    [totalRecords]="total()" sortField="displayName" [sortOrder]="1" dataKey="id" [showCurrentPageReport]="true" currentPageReportTemplate="{first}–{last} of {totalRecords}">
+    <ng-template #header>
+      <tr>
+        <th pSortableColumn="displayName">Name <p-sortIcon field="displayName" /></th>
+        <th>Role</th>
+        <th>Warehouses</th>
+        <th pSortableColumn="lastLoginAt">Last sign-in <p-sortIcon field="lastLoginAt" /></th>
+        <th>Status</th>
+        <th></th>
+      </tr>
+    </ng-template>
+    <ng-template #body let-u>
+      <tr [class.inactive]="!u.isActive">
+        <td>{{ u.displayName }}<div class="muted">{{ u.email }}</div></td>
+        <td>
+          <span class="chips">
+            @for (r of u.roles; track r) { <p-tag [value]="roleName(r)" severity="secondary" /> }
+          </span>
+        </td>
+        <td>{{ u.allWarehouses ? 'All warehouses' : (u.warehouseCodes.join(', ') || 'None') }}</td>
+        <td>{{ u.lastLoginAt ? (u.lastLoginAt | date: 'd MMM y, HH:mm') : 'Never' }}</td>
+        <td>
+          <span class="chips">
+            <wh-status-tag [active]="u.isActive" />
+            @if (u.isLockedOut) { <p-tag value="Locked" severity="danger" /> }
+          </span>
+        </td>
+        <td class="row-actions">
+          <p-button label="Edit" [text]="true" size="small" (onClick)="openEdit(u)" />
+          <p-button label="Password" [text]="true" size="small" (onClick)="openReset(u)" />
+          @if (u.isLockedOut) { <p-button label="Unlock" [text]="true" size="small" (onClick)="unlock(u)" /> }
+          @if (u.id !== me()?.id) {
+            <p-button [label]="u.isActive ? 'Deactivate' : 'Reactivate'" [text]="true" size="small" [severity]="u.isActive ? 'danger' : 'secondary'" (onClick)="toggleActive(u)" />
+          }
+        </td>
+      </tr>
+    </ng-template>
+    <ng-template #emptymessage>
+      <tr><td colspan="6" class="empty">No users match these filters.</td></tr>
+    </ng-template>
+  </p-table>
+</section>
+
+<p-dialog [header]="editing() ? 'Edit ' + editing()!.email : 'New user'" [visible]="dialog()" (visibleChange)="dialog.set($event)" [modal]="true"
+  [style]="{ width: '34rem' }" [breakpoints]="{ '640px': '95vw' }" [draggable]="false">
+  <form [formGroup]="form" (ngSubmit)="save()" novalidate id="userForm">
+    <div class="form-grid" style="grid-template-columns: 1fr">
+      <div class="field">
+        <label for="u-email">Email (used to sign in)</label>
+        <input pInputText id="u-email" formControlName="email" type="email" autocomplete="off" />
+        <wh-field-error [control]="form.controls.email" requiredText="Enter an email address." />
+      </div>
+      <div class="field">
+        <label for="u-name">Name</label>
+        <input pInputText id="u-name" formControlName="displayName" autocomplete="off" />
+        <wh-field-error [control]="form.controls.displayName" requiredText="Enter a name." />
+      </div>
+      @if (!editing()) {
+        <div class="field">
+          <label for="u-pass">Initial password</label>
+          <p-password inputId="u-pass" formControlName="password" [feedback]="false" [toggleMask]="true" autocomplete="new-password" [fluid]="true" />
+          <span class="hint">At least 10 characters with upper case, lower case and a digit.</span>
+          <wh-field-error [control]="form.controls.password" requiredText="Enter an initial password." patternText="Too weak: follow the rule above." />
+        </div>
+      }
+      <div class="field">
+        <label for="u-roles">Role</label>
+        <p-multiselect inputId="u-roles" formControlName="roles" [options]="roleOptions()" optionLabel="label" optionValue="value" display="chip" placeholder="Choose roles" appendTo="body" [showToggleAll]="false" />
+        <wh-field-error [control]="form.controls.roles" requiredText="Choose at least one role." />
+      </div>
+      <div class="field-inline">
+        <p-toggleswitch inputId="u-all" formControlName="allWarehouses" />
+        <label for="u-all">Access to all warehouses (including future ones)</label>
+      </div>
+      @if (!form.controls.allWarehouses.value) {
+        <div class="field">
+          <label for="u-wh">Warehouses</label>
+          <p-multiselect inputId="u-wh" formControlName="warehouseIds" [options]="warehouses()" optionLabel="name" optionValue="id" display="chip" placeholder="Choose warehouses" appendTo="body" />
+          <wh-field-error [control]="form.controls.warehouseIds" />
+        </div>
+      }
+    </div>
+  </form>
+  <ng-template #footer>
+    <p-button label="Cancel" severity="secondary" [text]="true" (onClick)="dialog.set(false)" />
+    <p-button (onClick)="save()" [label]="editing() ? 'Save user' : 'Create user'" [loading]="saving()" />
+  </ng-template>
+</p-dialog>
+
+<p-dialog [header]="'New password for ' + (resetFor()?.displayName ?? '')" [visible]="!!resetFor()" (visibleChange)="!$event && resetFor.set(null)" [modal]="true"
+  [style]="{ width: '28rem' }" [breakpoints]="{ '640px': '95vw' }" [draggable]="false">
+  <form [formGroup]="resetForm" (ngSubmit)="resetPassword()" novalidate id="resetForm">
+    <div class="field">
+      <label for="r-pass">New password</label>
+      <p-password inputId="r-pass" formControlName="password" [feedback]="false" [toggleMask]="true" autocomplete="new-password" [fluid]="true" />
+      <span class="hint">At least 10 characters with upper case, lower case and a digit. The user is signed out everywhere and their account is unlocked.</span>
+      <wh-field-error [control]="resetForm.controls.password" requiredText="Enter a new password." patternText="Too weak: follow the rule above." />
+    </div>
+  </form>
+  <ng-template #footer>
+    <p-button label="Cancel" severity="secondary" [text]="true" (onClick)="resetFor.set(null)" />
+    <p-button (onClick)="resetPassword()" label="Set password" [loading]="saving()" />
+  </ng-template>
+</p-dialog>

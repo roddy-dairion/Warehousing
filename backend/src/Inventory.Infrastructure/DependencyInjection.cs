@@ -1,6 +1,7 @@
 using Inventory.Application.Auth;
 using Inventory.Application.Common;
 using Inventory.Application.Roles;
+using Inventory.Application.Users;
 using Inventory.Infrastructure.Auth;
 using Inventory.Infrastructure.Identity;
 using Inventory.Infrastructure.Persistence;
@@ -55,6 +56,9 @@ public static class DependencyInjection
         services.AddScoped<IAuditWriter, AuditWriter>();
         services.AddScoped<IWarehouseAccess, WarehouseAccess>();
         services.AddScoped<IRoleQueries, RoleQueries>();
+        services.AddScoped<IUserAdminService, UserAdminService>();
+        services.AddOptions<StorageOptions>().Bind(configuration.GetSection(StorageOptions.Section));
+        services.AddSingleton<IFileStorage, LocalFileStorage>();
         services.AddScoped<DatabaseSeeder>();
         return services;
     }

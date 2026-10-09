@@ -1,0 +1,56 @@
+<section class="page" style="max-width: 60rem">
+  <header class="page-header">
+    <div>
+      <h1>Import from CSV</h1>
+      <p>Check the file first. Nothing is saved unless every row is valid.</p>
+    </div>
+  </header>
+
+  @if (kinds.length === 0) {
+    <p class="muted">Your role cannot import data.</p>
+  } @else {
+    <section class="panel">
+      <h2>1. Choose what to import</h2>
+      <div class="toolbar">
+        <p-select [options]="kinds" optionLabel="label" optionValue="value" [ngModel]="selected()" (ngModelChange)="changeKind($event)" ariaLabel="What to import" />
+        <p-button label="Download template" icon="pi pi-download" [text]="true" (onClick)="downloadTemplate()" />
+      </div>
+      <p class="muted" style="margin: 0.75rem 0 0">{{ option().help }} Blank cells keep existing values. Excel files saved as "CSV UTF-8" or "CSV (semicolon)" both work.</p>
+    </section>
+
+    <section class="panel">
+      <h2>2. Choose the file and check it</h2>
+      <div class="toolbar">
+        <input #picker type="file" accept=".csv,text/csv" (change)="onFile($event)" style="display: none" />
+        <p-button label="Choose CSV file" icon="pi pi-file" [outlined]="true" (onClick)="picker.click()" />
+        <span>{{ file()?.name ?? 'No file chosen' }}</span>
+        <p-button label="Check file" icon="pi pi-check-square" (onClick)="run(true)" [disabled]="!file()" [loading]="working() && !result()" />
+      </div>
+    </section>
+
+    @if (result(); as r) {
+      <section class="panel" aria-live="polite">
+        @if (r.applied) {
+          <p-message severity="success">Import complete: {{ r.created }} created, {{ r.updated }} updated ({{ r.totalRows }} rows).</p-message>
+          <div class="form-actions" style="justify-content: flex-start"><p-button label="Import another file" [text]="true" (onClick)="reset()" /></div>
+        } @else if (r.errors.length > 0) {
+          <h2>{{ r.errors.length }} problem{{ r.errors.length === 1 ? '' : 's' }} found, nothing was saved</h2>
+          <p class="muted" style="margin-top: 0">Fix these rows in the file, then check it again. Row numbers match the lines in your spreadsheet.</p>
+          <p-table [value]="r.errors" [scrollable]="true" scrollHeight="24rem">
+            <ng-template #header><tr><th class="num">Row</th><th>Column</th><th>Problem</th></tr></ng-template>
+            <ng-template #body let-e>
+              <tr><td class="num">{{ e.row }}</td><td>{{ e.column ?? '—' }}</td><td>{{ e.message }}</td></tr>
+            </ng-template>
+          </p-table>
+        } @else {
+          <h2>3. Import</h2>
+          <p-message severity="info">The file is valid: {{ r.created }} to create, {{ r.updated }} to update ({{ r.totalRows }} rows).</p-message>
+          <div class="form-actions" style="justify-content: flex-start">
+            <p-button [label]="'Import ' + r.totalRows + ' rows'" icon="pi pi-upload" (onClick)="run(false)" [loading]="working()" />
+            <p-button label="Cancel" severity="secondary" [text]="true" (onClick)="reset()" />
+          </div>
+        }
+      </section>
+    }
+  }
+</section>

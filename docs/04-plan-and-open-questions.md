@@ -11,6 +11,7 @@ Status: **Draft for review (Phase 1)**
 * Q4: bin locations are in v1.
 * Q5: partial shipments allowed; the shipper chooses close-short or backorder.
 * Q9: pack units (e.g. carton = 12) are in v1.
+* Phase 3 defaults (change any time): CSV import with a downloadable template; barcodes of any format, optional; bins can be imported and carry a label barcode; one optional image per product.
 
 The remaining questions can be decided by the phase noted in Part B.
 
@@ -45,7 +46,7 @@ The remaining questions can be decided by the phase noted in Part B.
 |---|---|---|
 | **1. Architecture** ✅ draft | These four documents | Reviewed; Q1–Q5 answered |
 | **2. Foundation** ✅ 2026-10-09 | `git init`; .NET 10 solution (6 projects); EF Core + Npgsql; docker-compose PostgreSQL; Identity + JWT + refresh tokens; permissions and warehouse access; ProblemDetails, Serilog, rate limiting, Swagger; Angular workspace (shared/web/mobile) with login + shell; CI build/test scripts | `dotnet build/test` and `ng build/test` pass; login works on web; migration `Initial` |
-| **3. Master data** | Warehouses + bin locations, users/roles/access, customers + addresses, categories, units + product pack units, products, barcodes, lots; CSV import (products, locations, customers) | CRUD APIs + web screens; authorization tests (warehouse access, permission denials) |
+| **3. Master data** ✅ 2026-10-09 | Warehouses + bin locations, users/roles/access, customers + addresses, categories, units + product pack units, products, barcodes, lots; CSV import (products, locations, customers) | CRUD APIs + web screens; authorization tests (warehouse access, permission denials) |
 | **4. Inventory engine** | Balances (bin × lot), append-only ledger (triggers), receipts with lot/expiry (draft/post/reverse), put-away and bin moves, adjustments with approval, FEFO reservation allocator, expiry alerts, idempotency middleware, reconciliation job | Integration tests #1, #6, #8, #10 from `Claude.md` §16 on real PostgreSQL, including parallel-request tests |
 | **5. Dispatch engine** | Dispatch CRUD, state machine, approve/reserve, pick + barcode validation, discrepancies, ready, ship (close/backorder), deliver + POD, cancel, history, delivery-note PDF | Integration tests #2–#5, #7, #9 incl. concurrent ship / double-submit |
 | **6. Web UI** | Dashboards, inventory, movements, receipts, adjustments, dispatch approval/picking/shipping, reports, audit views | Vitest unit tests; Playwright smoke tests |
