@@ -1,0 +1,25 @@
+# Local development database.
+#   docker compose -f deploy/docker-compose.dev.yml up -d
+# Creates:
+#   - inventory_dev  (used by the API in Development)
+#   - the postgres superuser, used by integration tests to create/drop throw-away databases
+services:
+  postgres:
+    image: postgres:17
+    container_name: warehousing-postgres
+    restart: unless-stopped
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - ./postgres-init:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      retries: 10
+
+volumes:
+  pgdata:

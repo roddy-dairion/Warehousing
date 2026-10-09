@@ -42,7 +42,7 @@ Clean/layered architecture, using the project names from `Claude.md`:
 | `Inventory.Infrastructure` | EF Core `DbContext`, configurations, migrations, repositories, row locking, idempotency store, identity/token services, file storage, audit interceptor. | Application |
 | `Inventory.Api` | Controllers (`/api/v1/...`), auth setup, permission policies, ProblemDetails, rate limiting, OpenAPI/Swagger, Serilog, health checks. | Application, Infrastructure |
 | `Inventory.Tests` | xUnit unit tests: domain rules and state machine. | Domain, Application |
-| `Inventory.IntegrationTests` | xUnit + Testcontainers (real PostgreSQL): stock accounting, concurrency, idempotency, authorization. | Api |
+| `Inventory.IntegrationTests` | xUnit + real PostgreSQL (throw-away database per test class): stock accounting, concurrency, idempotency, authorization. | Api |
 
 Library choices (all free, permissive licences):
 
@@ -127,13 +127,14 @@ Duplicate-scan protection works at two levels. Client side, identical codes with
 
 ## 7. Pinned versions
 
-Frontend versions were installed and built on 2026-10-09. Backend versions are proposed and get locked once .NET can be restored.
+All versions below were installed, built and tested on 2026-10-09. Backend packages are pinned centrally in `backend/Directory.Packages.props`.
 
 | Component | Version | Notes |
 |---|---|---|
-| .NET SDK / ASP.NET Core | **10.0.x (LTS)** | Supported to Nov 2028 |
-| EF Core | 10.0.x | |
-| Npgsql.EntityFrameworkCore.PostgreSQL | 10.0.x | Matches EF Core 10 |
+| .NET SDK / ASP.NET Core | **10.0 (LTS)**, packages 10.0.12 | Supported to Nov 2028 |
+| EF Core / Identity / JwtBearer | 10.0.12 | |
+| Npgsql.EntityFrameworkCore.PostgreSQL | 10.0.3 | + EFCore.NamingConventions 10.0.1 (snake_case) |
+| FluentValidation / Serilog.AspNetCore / Swashbuckle SwaggerUI | 12.1.1 / 10.0.0 / 10.3.0 | |
 | PostgreSQL | **17** (18 acceptable) | Needs ≥15 for `NULLS NOT DISTINCT` |
 | Node.js | 22 LTS (≥22.12) or 24 LTS | `engines` enforced via `.npmrc` |
 | Angular | **21.2.x** | See the PrimeNG note below |
@@ -144,7 +145,7 @@ Frontend versions were installed and built on 2026-10-09. Backend versions are p
 | @aparajita/capacitor-secure-storage | 8.0.1 | Token storage |
 | zone.js | 0.16.x | Mobile only (Ionic needs NgZone); web is zoneless |
 | TypeScript | 5.9.x | strict, `noUncheckedIndexedAccess`, strict templates |
-| Test: backend | xUnit v3, Testcontainers.PostgreSql, Respawn | Integration tests need Docker |
+| Test: backend | xUnit v3 4.0.1 on Microsoft.Testing.Platform, Shouldly, Mvc.Testing | Integration tests use a real PostgreSQL (throw-away database per test class) |
 | Test: frontend | Vitest 4 (Angular unit-test builder), Playwright for E2E | |
 
 **PrimeNG licence (decided 2026-10-09):** PrimeNG 22 moved to the commercial "PrimeUI" licence. It needs a key, otherwise it shows an "Invalid PrimeUI License" notice, and the free Community licence is limited to organisations under $1M revenue, fewer than 5 developers and fewer than 10 employees. PrimeNG 21.x is MIT, so the project uses **Angular 21 + PrimeNG 21.1.10, pinned exactly**. Angular 21 receives security fixes until roughly May 2027. Before then, decide whether to buy a PrimeUI licence or move to another UI kit.

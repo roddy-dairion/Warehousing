@@ -10,15 +10,25 @@ Web app (Angular + PrimeNG), warehouse mobile app (Ionic + Capacitor), ASP.NET C
   4. [Plan & open questions](docs/04-plan-and-open-questions.md)
   5. [Auth API contract](docs/05-auth-api-contract.md)
 
+## Quick start (development)
+
+```powershell
+docker compose -f deploy/docker-compose.dev.yml up -d   # PostgreSQL
+cd backend; dotnet run --project src/Inventory.Api --launch-profile http   # API on :5080 (see backend/README.md for secrets)
+cd frontend; npm ci; npm start                         # web app on :4200
+```
+
 ## Layout
 
 | Folder | Contents |
 |---|---|
 | `frontend/` | Angular workspace: `shared` library, `web` app (PrimeNG), `mobile` app (Ionic + Capacitor). See [frontend/README.md](frontend/README.md). |
-| `backend/` | ASP.NET Core 10 solution (Phase 2, pending). |
+| `backend/` | ASP.NET Core 10 API, EF Core + PostgreSQL. See [backend/README.md](backend/README.md). |
+| `deploy/` | `docker-compose.dev.yml`: local PostgreSQL 17 for development and tests. |
 | `docs/` | Architecture and design documents. |
 
 ## Status
 
 * Phase 1 (architecture): done.
-* Phase 2 (foundation): frontend done (login, app shells, auth, guards, tests). Backend pending.
+* Phase 2 (foundation): done. Login, refresh, logout, permissions and warehouse access, web and mobile shells, 64 automated tests.
+* Next: Phase 3 (master data: users, warehouses and bins, customers, products, barcodes).
