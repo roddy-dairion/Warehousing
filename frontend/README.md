@@ -24,7 +24,29 @@ npm run lint:types     # strict TypeScript check of both apps
 npm run build          # production builds into dist/web and dist/mobile
 ```
 
-Native mobile builds (Phase 7): `npx cap add android` / `npx cap add ios`, then `npm run build:mobile`. Native projects are created under `projects/mobile/android` and `projects/mobile/ios`. iOS builds need a Mac with Xcode.
+## Testing the mobile app
+
+**1. In the browser (quickest, no camera):** start the API, then `npm run start:mobile` and open http://localhost:4201. In Chrome DevTools, toggle the device toolbar (Ctrl+Shift+M) to get a phone-sized screen. Scanning will need a real device.
+
+**2. Android emulator:** needs Android Studio (with an emulator image) and JDK 21 (bundled with Android Studio).
+```powershell
+npm run android:sync    # builds the "device" config (API at http://10.0.2.2:5080) and copies it into the Android project
+npm run android:open    # opens projects/mobile/android in Android Studio, then press Run
+```
+Start the API normally (http profile) first.
+
+**3. Android phone (USB or Wi-Fi):**
+1. Set your PC's IP in `projects/mobile/src/environments/environment.device.ts` (`ipconfig` → IPv4), e.g. `http://192.168.1.20:5080/api/v1`.
+2. Start the API with the **lan** profile (listens on all interfaces).
+3. Allow port 5080 through Windows Firewall once (admin PowerShell):
+   `New-NetFirewallRule -DisplayName "HelloCherie API dev" -Direction Inbound -Protocol TCP -LocalPort 5080 -Action Allow -Profile Private`
+4. Enable USB debugging on the phone, plug it in, then `npm run android:sync` and Run from Android Studio (or `npm run android:run`).
+
+The phone must be on the same network as the PC, and that network must be set to *Private* in Windows.
+
+**iOS:** needs a Mac with Xcode (`npx cap add ios`, then build in Xcode). Not set up yet.
+
+Debug builds allow plain HTTP to the local API (`CAP_DEV=1` in `android:sync`). Release builds must be synced with `npm run build:mobile`, which allows HTTPS only.
 
 ## Key decisions
 

@@ -172,6 +172,17 @@
                   "with": "projects/mobile/src/environments/environment.development.ts"
                 }
               ]
+            },
+            "device": {
+              "optimization": false,
+              "extractLicenses": false,
+              "sourceMap": true,
+              "fileReplacements": [
+                {
+                  "replace": "projects/mobile/src/environments/environment.ts",
+                  "with": "projects/mobile/src/environments/environment.device.ts"
+                }
+              ]
             }
           },
           "defaultConfiguration": "production"
@@ -186,7 +197,10 @@
               "buildTarget": "mobile:build:development"
             }
           },
-          "defaultConfiguration": "development"
+          "defaultConfiguration": "development",
+          "options": {
+            "proxyConfig": "projects/web/proxy.conf.json"
+          }
         },
         "test": {
           "builder": "@angular/build:unit-test"

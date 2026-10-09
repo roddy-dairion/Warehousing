@@ -30,7 +30,7 @@ async function signInWith(warehouses: { id: string; code: string; name: string }
   TestBed.tick();
 }
 
-const runGuard = () => TestBed.runInInjectionContext(() => warehouseSelectedGuard({}, []));
+const runGuard = () => TestBed.runInInjectionContext(() => warehouseSelectedGuard({}, [])) as Promise<boolean | UrlTree>;
 
 describe('warehouseSelectedGuard', () => {
   it('redirects to warehouse selection when the user has several warehouses and none chosen', async () => {
@@ -38,7 +38,7 @@ describe('warehouseSelectedGuard', () => {
       { id: 'w1', code: 'MAIN', name: 'Main' },
       { id: 'w2', code: 'NORTH', name: 'North' },
     ]);
-    const result = runGuard();
+    const result = await runGuard();
     expect(result instanceof UrlTree).toBe(true);
     expect(TestBed.inject(Router).serializeUrl(result as UrlTree)).toBe('/select-warehouse');
   });
@@ -49,11 +49,44 @@ describe('warehouseSelectedGuard', () => {
       { id: 'w2', code: 'NORTH', name: 'North' },
     ]);
     TestBed.inject(WarehouseContextService).select('w2');
-    expect(runGuard()).toBe(true);
+    expect(await runGuard()).toBe(true);
   });
 
   it('lets the user through when only one warehouse exists (auto-selected)', async () => {
     await signInWith([{ id: 'w1', code: 'MAIN', name: 'Main' }]);
-    expect(runGuard()).toBe(true);
+    expect(await runGuard()).toBe(true);
+  });
+
+  it('waits for the session to be restored before deciding (page reload)', async () => {
+    TestBed.configureTestingModule({
+      providers: [
+        provideRouter([]),
+        provideHttpClient(),
+        provideHttpClientTesting(),
+        { provide: API_BASE_URL, useValue: API },
+        { provide: KEY_VALUE_STORE, useValue: { get: () => null, set: () => undefined, remove: () => undefined } },
+      ],
+    });
+    const result = runGuard();
+    await new Promise((r) => setTimeout(r, 0));
+    TestBed.inject(HttpTestingController)
+      .expectOne(`${API}/auth/refresh`)
+      .flush({
+        accessToken: 't',
+        accessTokenExpiresAt: new Date(Date.now() + 60_000).toISOString(),
+        user: { id: '1', email: 'a', displayName: 'A', roles: [], permissions: [], allWarehouses: true, warehouses: [{ id: 'w1', code: 'MAIN', name: 'Main' }] },
+      });
+    expect(await result).toBe(true);
+  });
+
+  it('sends a signed-out user to the login page', async () => {
+    TestBed.configureTestingModule({
+      providers: [provideRouter([]), provideHttpClient(), provideHttpClientTesting(), { provide: API_BASE_URL, useValue: API }],
+    });
+    const result = runGuard();
+    await new Promise((r) => setTimeout(r, 0));
+    TestBed.inject(HttpTestingController).expectOne(`${API}/auth/refresh`).flush({}, { status: 401, statusText: 'Unauthorized' });
+    const tree = (await result) as UrlTree;
+    expect(TestBed.inject(Router).serializeUrl(tree)).toBe('/login');
   });
 });
