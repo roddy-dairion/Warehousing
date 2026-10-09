@@ -14,7 +14,7 @@ Web app (Angular + PrimeNG), warehouse mobile app (Ionic + Capacitor), ASP.NET C
 
 Only PostgreSQL runs in Docker. The API and the Angular apps run directly from Visual Studio / VS Code.
 
-1. **Database:** `docker compose -f deploy/docker-compose.dev.yml up -d` (PostgreSQL 17 on port 5432, dev database `inventory_dev`).
+1. **Database:** `docker compose -f deploy/docker-compose.dev.yml up -d` (PostgreSQL 17 on port 5433 (5432 is left free for a locally installed PostgreSQL), dev database `inventory_dev`).
 2. **Secrets (once):** see [backend/README.md](backend/README.md#first-run). In Visual Studio: right-click *Inventory.Api* → *Manage User Secrets*.
 3. **API:**
    * Visual Studio 2022 (17.14+) / 2026: open `backend/Inventory.slnx`, start *Inventory.Api* with the **http** profile (port 5080).

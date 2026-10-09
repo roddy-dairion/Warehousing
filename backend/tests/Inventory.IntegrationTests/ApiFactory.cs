@@ -25,7 +25,7 @@ public class ApiFactory : WebApplicationFactory<Program>, IAsyncLifetime
     public const string Password = "Test-Password1";
 
     private static readonly string ServerConnection =
-        Environment.GetEnvironmentVariable("INVENTORY_TEST_DB") ?? "Host=localhost;Port=5432;Username=postgres;Password=postgres";
+        Environment.GetEnvironmentVariable("INVENTORY_TEST_DB") ?? "Host=localhost;Port=5433;Username=postgres;Password=postgres";
 
     private readonly string _database = $"inventory_test_{Guid.NewGuid():N}";
 

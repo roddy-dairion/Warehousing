@@ -47,7 +47,7 @@ Generate a signing key: `[Convert]::ToBase64String((1..48 | % { Get-Random -Max 
 
 ```powershell
 dotnet test                                   # unit + integration
-$env:INVENTORY_TEST_DB = "Host=localhost;Port=5432;Username=postgres;Password=postgres"   # default
+$env:INVENTORY_TEST_DB = "Host=localhost;Port=5433;Username=postgres;Password=postgres"   # default
 ```
 
 Integration tests create a database per test class (`inventory_test_<guid>`) and drop it afterwards, so they need a PostgreSQL login that may create databases.
