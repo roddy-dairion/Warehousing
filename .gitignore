@@ -1,0 +1,53 @@
+# ---- OS / editors ----
+.DS_Store
+Thumbs.db
+desktop.ini
+.vs/
+.vscode/*
+!.vscode/extensions.json
+!.vscode/settings.json
+.idea/
+*.swp
+
+# ---- .NET ----
+bin/
+obj/
+*.user
+*.suo
+*.rsuser
+TestResults/
+coverage/
+*.coverage
+*.trx
+appsettings.*.local.json
+appsettings.Development.local.json
+
+# ---- Node / Angular / Ionic ----
+node_modules/
+dist/
+.angular/
+www/
+.nx/
+npm-debug.log*
+*.tsbuildinfo
+
+# ---- Capacitor native ----
+android/.gradle/
+android/app/build/
+android/build/
+android/local.properties
+android/capacitor-cordova-android-plugins/
+ios/App/Pods/
+ios/App/build/
+ios/DerivedData/
+*.keystore
+*.jks
+*.p12
+*.mobileprovision
+
+# ---- Secrets / env ----
+.env
+.env.*
+!.env.example
+secrets/
+*.pfx
