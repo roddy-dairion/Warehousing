@@ -10,13 +10,17 @@ Web app (Angular + PrimeNG), warehouse mobile app (Ionic + Capacitor), ASP.NET C
   4. [Plan & open questions](docs/04-plan-and-open-questions.md)
   5. [Auth API contract](docs/05-auth-api-contract.md)
 
-## Quick start (development)
+## Local development
 
-```powershell
-docker compose -f deploy/docker-compose.dev.yml up -d   # PostgreSQL
-cd backend; dotnet run --project src/Inventory.Api --launch-profile http   # API on :5080 (see backend/README.md for secrets)
-cd frontend; npm ci; npm start                         # web app on :4200
-```
+Only PostgreSQL runs in Docker. The API and the Angular apps run directly from Visual Studio / VS Code.
+
+1. **Database:** `docker compose -f deploy/docker-compose.dev.yml up -d` (PostgreSQL 17 on port 5432, dev database `inventory_dev`).
+2. **Secrets (once):** see [backend/README.md](backend/README.md#first-run). In Visual Studio: right-click *Inventory.Api* → *Manage User Secrets*.
+3. **API:**
+   * Visual Studio 2022 (17.14+) / 2026: open `backend/Inventory.slnx`, start *Inventory.Api* with the **http** profile (port 5080).
+   * VS Code: open the repo folder, run **API (.NET)** (F5), or the compound **API + Web app**.
+4. **Web app:** `cd frontend`, `npm ci` (once), then `npm start`, or VS Code **Web app (Chrome)**. Open http://localhost:4200. `/api` is proxied to port 5080.
+5. **Tests:** Visual Studio Test Explorer, or `dotnet test` in `backend/` and `npm test` in `frontend/`.
 
 ## Layout
 

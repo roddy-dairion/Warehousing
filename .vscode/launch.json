@@ -1,0 +1,43 @@
+{
+  // F5 in VS Code. PostgreSQL must be running (docker compose -f deploy/docker-compose.dev.yml up -d).
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "API (.NET)",
+      "type": "coreclr",
+      "request": "launch",
+      "preLaunchTask": "build api",
+      "program": "${workspaceFolder}/backend/src/Inventory.Api/bin/Debug/net10.0/Inventory.Api.dll",
+      "cwd": "${workspaceFolder}/backend/src/Inventory.Api",
+      "env": {
+        "ASPNETCORE_ENVIRONMENT": "Development",
+        "ASPNETCORE_URLS": "http://localhost:5080"
+      },
+      "console": "integratedTerminal",
+      "stopAtEntry": false
+    },
+    {
+      "name": "Web app (Chrome)",
+      "type": "chrome",
+      "request": "launch",
+      "preLaunchTask": "web: start",
+      "url": "http://localhost:4200/",
+      "webRoot": "${workspaceFolder}/frontend"
+    },
+    {
+      "name": "Mobile app in browser (Chrome)",
+      "type": "chrome",
+      "request": "launch",
+      "preLaunchTask": "mobile: start",
+      "url": "http://localhost:4201/",
+      "webRoot": "${workspaceFolder}/frontend"
+    }
+  ],
+  "compounds": [
+    {
+      "name": "API + Web app",
+      "configurations": ["API (.NET)", "Web app (Chrome)"],
+      "stopAll": true
+    }
+  ]
+}

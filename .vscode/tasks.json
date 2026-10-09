@@ -1,0 +1,68 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "build api",
+      "type": "process",
+      "command": "dotnet",
+      "args": ["build", "${workspaceFolder}/backend/src/Inventory.Api/Inventory.Api.csproj", "/property:GenerateFullPaths=true", "/consoleloggerparameters:NoSummary"],
+      "problemMatcher": "$msCompile",
+      "group": "build"
+    },
+    {
+      "label": "test backend",
+      "type": "process",
+      "command": "dotnet",
+      "args": ["test"],
+      "options": { "cwd": "${workspaceFolder}/backend" },
+      "problemMatcher": "$msCompile",
+      "group": "test"
+    },
+    {
+      "label": "web: start",
+      "type": "npm",
+      "script": "start",
+      "path": "frontend",
+      "isBackground": true,
+      "problemMatcher": {
+        "owner": "typescript",
+        "pattern": "$tsc",
+        "background": {
+          "activeBegins": true,
+          "beginsPattern": { "regexp": "(.*?)" },
+          "endsPattern": { "regexp": "Local:|bundle generation complete" }
+        }
+      }
+    },
+    {
+      "label": "mobile: start",
+      "type": "npm",
+      "script": "start:mobile",
+      "path": "frontend",
+      "isBackground": true,
+      "problemMatcher": {
+        "owner": "typescript",
+        "pattern": "$tsc",
+        "background": {
+          "activeBegins": true,
+          "beginsPattern": { "regexp": "(.*?)" },
+          "endsPattern": { "regexp": "Local:|bundle generation complete" }
+        }
+      }
+    },
+    {
+      "label": "test frontend",
+      "type": "npm",
+      "script": "test",
+      "path": "frontend",
+      "problemMatcher": [],
+      "group": "test"
+    },
+    {
+      "label": "postgres: start (docker)",
+      "type": "shell",
+      "command": "docker compose -f deploy/docker-compose.dev.yml up -d",
+      "problemMatcher": []
+    }
+  ]
+}

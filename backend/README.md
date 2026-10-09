@@ -12,9 +12,22 @@
 ## Requirements
 
 * .NET SDK 10.0.1xx (`global.json`)
-* PostgreSQL 15+ (17 recommended). Easiest: `docker compose -f deploy/docker-compose.dev.yml up -d` from the repo root.
+* PostgreSQL 15+ (17 recommended), run in Docker: `docker compose -f deploy/docker-compose.dev.yml up -d` from the repo root.
+* Visual Studio 2022 17.14+ (or 2026), or VS Code with C# Dev Kit. Test Explorer uses Microsoft.Testing.Platform (set in `global.json`).
 
-## First run (Windows PowerShell, from `backend/`)
+## First run
+
+In Visual Studio, set the secrets via right-click *Inventory.Api* → *Manage User Secrets*:
+
+```json
+{
+  "Jwt:SigningKey": "<at least 32 random characters>",
+  "Seed:AdminEmail": "you@yourcompany.mu",
+  "Seed:AdminPassword": "<10+ chars, upper, lower, digit>"
+}
+```
+
+Then start *Inventory.Api* with the **http** profile. Or from PowerShell in `backend/`:
 
 ```powershell
 dotnet tool restore
