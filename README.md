@@ -1,4 +1,4 @@
-# Warehousing — Inventory & Dispatch Management
+# HelloCherie Warehousing — Inventory & Dispatch Management
 
 Web app (Angular + PrimeNG), warehouse mobile app (Ionic + Capacitor), ASP.NET Core API, PostgreSQL.
 

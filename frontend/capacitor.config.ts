@@ -6,7 +6,7 @@ import type { CapacitorConfig } from '@capacitor/cli';
  */
 const config: CapacitorConfig = {
   appId: 'com.warehousing.mobile',
-  appName: 'Warehousing',
+  appName: 'HelloCherie Warehousing',
   webDir: 'dist/mobile/browser',
   android: { path: 'projects/mobile/android' },
   ios: { path: 'projects/mobile/ios' },

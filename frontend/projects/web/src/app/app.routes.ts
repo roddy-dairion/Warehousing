@@ -6,7 +6,7 @@ const placeholder = () => import('./pages/placeholder/placeholder').then((m) => 
 export const routes: Routes = [
   {
     path: 'login',
-    title: 'Sign in · Warehousing',
+    title: 'Sign in · HelloCherie Warehousing',
     canMatch: [guestGuard],
     loadComponent: () => import('./pages/login/login').then((m) => m.LoginPage),
   },
@@ -15,7 +15,7 @@ export const routes: Routes = [
     canMatch: [authGuard],
     loadComponent: () => import('./layout/shell').then((m) => m.Shell),
     children: [
-      { path: '', title: 'Dashboard · Warehousing', loadComponent: () => import('./pages/dashboard/dashboard').then((m) => m.DashboardPage) },
+      { path: '', title: 'Dashboard · HelloCherie Warehousing', loadComponent: () => import('./pages/dashboard/dashboard').then((m) => m.DashboardPage) },
       { path: 'dispatches', title: 'Dispatches', canMatch: [permissionGuard(Permissions.DispatchesRead)], loadComponent: placeholder, data: { title: 'Dispatches', phase: 6 } },
       { path: 'receipts', title: 'Goods receipts', canMatch: [permissionGuard(Permissions.InventoryReceive)], loadComponent: placeholder, data: { title: 'Goods receipts', phase: 6 } },
       { path: 'inventory', title: 'Stock', canMatch: [permissionGuard(Permissions.InventoryRead)], loadComponent: placeholder, data: { title: 'Stock', phase: 6 } },

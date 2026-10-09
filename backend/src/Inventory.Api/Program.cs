@@ -113,7 +113,7 @@ try
         // Swagger UI is static middleware: register it before authorization so the page itself loads anonymously.
         app.UseSwaggerUI(o =>
         {
-            o.SwaggerEndpoint("/openapi/v1.json", "Warehousing API v1");
+            o.SwaggerEndpoint("/openapi/v1.json", "HelloCherie Warehousing API v1");
             o.RoutePrefix = "swagger";
         });
     }

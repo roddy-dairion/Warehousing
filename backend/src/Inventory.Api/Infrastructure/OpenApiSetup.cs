@@ -8,7 +8,7 @@ internal sealed class BearerSecurityTransformer : IOpenApiDocumentTransformer
 {
     public Task TransformAsync(OpenApiDocument document, OpenApiDocumentTransformerContext context, CancellationToken cancellationToken)
     {
-        document.Info.Title = "Warehousing API";
+        document.Info.Title = "HelloCherie Warehousing API";
         document.Info.Description = "Inventory and dispatch management. All endpoints except /auth/login, /auth/refresh and /auth/logout require a bearer token.";
         document.Components ??= new OpenApiComponents();
         document.Components.SecuritySchemes ??= new Dictionary<string, IOpenApiSecurityScheme>();
