@@ -10,6 +10,8 @@
 		<key>NSAllowsLocalNetworking</key>
 		<true/>
 	</dict>
+	<key>NSLocalNetworkUsageDescription</key>
+	<string>Connects to the warehouse server on your local network.</string>
 	<key>NSPhotoLibraryUsageDescription</key>
 	<string>Choose delivery photos from the photo library.</string>
 	<key>CFBundleDevelopmentRegion</key>

@@ -5,6 +5,7 @@ import { IonicRouteStrategy, provideIonicAngular } from '@ionic/angular';
 import { API_BASE_URL, AUTH_CLIENT, TOKEN_STORE, whHttpInterceptors } from '@wh/shared';
 import { environment } from '../environments/environment';
 import { SecureTokenStore } from './core/secure-token-store';
+import { timeoutInterceptor } from './core/timeout.interceptor';
 import { routes } from './app.routes';
 
 export const appConfig: ApplicationConfig = {
@@ -15,7 +16,8 @@ export const appConfig: ApplicationConfig = {
     provideIonicAngular({ mode: 'md' }),
     { provide: RouteReuseStrategy, useClass: IonicRouteStrategy },
     provideRouter(routes, withPreloading(PreloadAllModules), withComponentInputBinding()),
-    provideHttpClient(withInterceptors(whHttpInterceptors)),
+    // Timeout innermost, so it limits each attempt (the auth interceptor may refresh and retry once).
+    provideHttpClient(withInterceptors([...whHttpInterceptors, timeoutInterceptor])),
     { provide: API_BASE_URL, useValue: environment.apiBaseUrl },
     { provide: AUTH_CLIENT, useValue: 'mobile' },
     { provide: TOKEN_STORE, useExisting: SecureTokenStore },

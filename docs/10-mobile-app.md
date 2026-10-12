@@ -11,6 +11,7 @@ Ionic 9 + Angular 21 + Capacitor 8, in `frontend/projects/mobile`. It uses the s
 | Login, choose warehouse | everyone | Refresh token in the iOS Keychain / Android Keystore. The warehouse choice only appears for users with several warehouses. |
 | Home | everyone | The actions the user's role allows. Counts come from the dashboard (dispatches waiting, draft receipts). Pull down to refresh. |
 | **Scan** | `products.read` | Scan anything. A **product or carton barcode** shows the product, what the barcode stands for (e.g. 1 CTN = 12 EA), lot/expiry flags, and stock in this warehouse (on hand / reserved / available, by bin and lot). A **bin label** shows what is in the bin. **Other text** searches SKU and name. Unknown and inactive items get a clear warning. |
+| Unknown barcode → **add to a product / create a product** | `products.manage` (managers, admins) | After scanning a code nobody knows: search the product and add the barcode to it (asking whether it stands for 1 unit or a pack such as 1 CTN = 12), or create a product (SKU, name, unit, lot/expiry) with that barcode. The server refuses a barcode already used by another product. |
 | Product stock | `inventory.read` | Stock by bin and lot and the latest 25 movements. |
 | **Dispatches** | `dispatches.read` + pick / ship / deliver | Tabs **To pick** (approved, picking; "only assigned to me" filter), **To ship** (ready), **To deliver** (dispatched). Each tab only appears if the user holds that permission. |
 | **Picking** | `dispatches.pick` | Guided steps. The next task is shown large (bin, product, lot, quantity left). The picker scans the **bin label**, then the **product or carton**, then checks the lot and confirms the quantity. Whole cartons are proposed (24 EA left → "Pick 2 CTN (24 EA)"). Other buttons: take this job, choose another bin (reallocate), report a problem (missing / damaged / unexpected / wrong lot / other), undo recent picks, picking done (asks before finishing short). |
@@ -39,10 +40,14 @@ Permissions only shape what the app shows. The API checks every action again.
 | Delivery | If the upload's answer is lost, the app reloads the dispatch; if it is already delivered, it reports success instead of an error. |
 | Buttons | Disabled while a request runs. |
 
+## Connection time limit
+
+Every request gives up after 20 seconds (uploads of delivery photos: 90 seconds) and shows "Cannot reach the server". Without this, a phone on the wrong Wi-Fi or a sleeping PC left the sign-in spinner turning. A time-out is treated like a lost connection, so stock actions keep their scan id or idempotency key for a safe retry.
+
 ## Native projects
 
 * **Android** (`projects/mobile/android`): `CAMERA` permission (scanning and delivery photos), ML Kit metadata. minSdk 24, target 36.
-* **iOS** (`projects/mobile/ios`, new): CocoaPods, because ML Kit does not support Swift Package Manager. Deployment target 15.5 (ML Kit minimum). `NSCameraUsageDescription` and `NSPhotoLibraryUsageDescription` texts. `NSAllowsLocalNetworking` lets a debug build reach the API on the office PC over HTTP. `pod install` runs on the Mac (`npm run ios:sync`).
+* **iOS** (`projects/mobile/ios`, new): CocoaPods, because ML Kit does not support Swift Package Manager. Deployment target 15.5 (ML Kit minimum). `NSCameraUsageDescription` and `NSPhotoLibraryUsageDescription` texts. `NSLocalNetworkUsageDescription` explains the local-network permission prompt; `NSAllowsLocalNetworking` lets a debug build reach the API on the office PC over HTTP. `pod install` runs on the Mac (`npm run ios:sync`).
 * App ID `ch.hellocherie.warehouse` (Q22, decided 2026-10-12; fixed once uploaded to a store).
 * Cloud builds (Android and iOS, test and release) with Codemagic: see [doc 11](11-mobile-builds-codemagic.md).
 

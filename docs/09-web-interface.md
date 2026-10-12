@@ -46,6 +46,15 @@ Master-data screens (products, customers, warehouses and bins, categories and un
 
 Bugs found and fixed by the smoke test: the POD/logo image reloaded endlessly; the signature pad lost the drawing when its size changed and drew offset during the dialog animation; "Delivered at" was blank because its max date was fixed when the page opened; missing spaces in the customer name/reference and address; the template version date used US format.
 
+## Scanning in the web app
+
+The web app works with a **USB or Bluetooth barcode scanner** (keyboard wedge: it types the code and presses Enter). No setup is needed. Click into the field and scan:
+* any product field (receipts, dispatches, adjustments, bin moves): searching by barcode finds the product;
+* the **Products** list search;
+* the scanner box on the dispatch page (bin label, then product or carton barcode).
+
+Webcam scanning in the browser is not included. Camera scanning is in the mobile app.
+
 ## Known limitations
 
 * The PDF preview uses the browser's PDF viewer (headless test browsers show a blank frame; normal Chrome, Edge, Firefox and Safari show the PDF).

@@ -68,8 +68,13 @@
       @case ('unknown') {
         <div class="wh-empty">
           <p><strong>Unknown code "{{ r.code }}"</strong></p>
-          <p>It is not a product barcode, a bin, or a SKU/name. Check the label, or ask an office user to add the barcode to the product.</p>
+          @if (canManageProducts) {
+            <p>It is not a product barcode, a bin, or a SKU/name yet.</p>
+          } @else {
+            <p>It is not a product barcode, a bin, or a SKU/name. Check the label, or ask a manager to add the barcode to the product.</p>
+          }
         </div>
+        @if (canManageProducts) { <wh-unknown-code [code]="r.code" (done)="lookup($event)" /> }
       }
     }
   } @else {

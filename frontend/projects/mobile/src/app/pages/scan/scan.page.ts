@@ -10,6 +10,7 @@ import {
 import { Feedback } from '../../core/feedback';
 import { BalanceList } from '../../ui/balance-list';
 import { ScanField } from '../../ui/scan-field';
+import { UnknownCode } from './unknown-code';
 
 type Result =
   | { kind: 'product'; code: string; lookup: BarcodeLookupDto | null; stock: ProductStockDto | null; productId: string; sku: string; name: string; active: boolean }
@@ -24,7 +25,7 @@ type Result =
 @Component({
   selector: 'wh-scan',
   imports: [RouterLink, IonHeader, IonToolbar, IonTitle, IonButtons, IonBackButton, IonButton, IonContent, IonList, IonItem, IonLabel, IonNote, IonSpinner,
-    BalanceList, ScanField],
+    BalanceList, ScanField, UnknownCode],
   templateUrl: './scan.page.html',
 })
 export class ScanPage implements ViewDidEnter {
@@ -40,6 +41,7 @@ export class ScanPage implements ViewDidEnter {
   protected readonly busy = signal(false);
   protected readonly result = signal<Result | null>(null);
   protected readonly canSeeStock = this.auth.hasPermission(Permissions.InventoryRead);
+  protected readonly canManageProducts = this.auth.hasPermission(Permissions.ProductsManage);
 
   ionViewDidEnter(): void {
     this.field().focus();
