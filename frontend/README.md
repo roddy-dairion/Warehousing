@@ -54,6 +54,8 @@ For a phone on Wi-Fi, set the PC's IP in `environment.device.ts` as for Android.
 
 See [docs/10-mobile-app.md](../docs/10-mobile-app.md) for the screens and the device test checklist.
 
+**5. Cloud builds without a Mac or Android Studio:** Codemagic, see [docs/11-mobile-builds-codemagic.md](../docs/11-mobile-builds-codemagic.md).
+
 Debug builds allow plain HTTP to the local API (`CAP_DEV=1` in `android:sync`). Release builds must be synced with `npm run build:mobile`, which allows HTTPS only.
 
 ## Key decisions

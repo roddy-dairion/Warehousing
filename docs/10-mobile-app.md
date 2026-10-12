@@ -43,7 +43,8 @@ Permissions only shape what the app shows. The API checks every action again.
 
 * **Android** (`projects/mobile/android`): `CAMERA` permission (scanning and delivery photos), ML Kit metadata. minSdk 24, target 36.
 * **iOS** (`projects/mobile/ios`, new): CocoaPods, because ML Kit does not support Swift Package Manager. Deployment target 15.5 (ML Kit minimum). `NSCameraUsageDescription` and `NSPhotoLibraryUsageDescription` texts. `NSAllowsLocalNetworking` lets a debug build reach the API on the office PC over HTTP. `pod install` runs on the Mac (`npm run ios:sync`).
-* Placeholder app id `com.warehousing.mobile` (Q22: confirm it before publishing to the stores, it cannot change afterwards).
+* App ID `ch.hellocherie.warehouse` (Q22, decided 2026-10-12; fixed once uploaded to a store).
+* Cloud builds (Android and iOS, test and release) with Codemagic: see [doc 11](11-mobile-builds-codemagic.md).
 
 Build and run: see [frontend/README.md](../frontend/README.md#testing-the-mobile-app).
 

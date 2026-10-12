@@ -2,7 +2,7 @@ import type { CapacitorConfig } from '@capacitor/cli';
 
 /**
  * Capacitor config for the warehouse mobile app (projects/mobile).
- * appId is permanent once published to the stores — confirm it before the first release (open question Q22).
+ * appId (Q22, decided 2026-10-12): ch.hellocherie.warehouse. It is permanent once the app is uploaded to Google Play or App Store Connect.
  *
  * CAP_DEV=1 (set by `npm run android:sync`) allows plain-HTTP calls to the local API.
  * Release builds must be synced without it, so only HTTPS is allowed.
@@ -10,7 +10,7 @@ import type { CapacitorConfig } from '@capacitor/cli';
 const dev = process.env['CAP_DEV'] === '1';
 
 const config: CapacitorConfig = {
-  appId: 'com.warehousing.mobile',
+  appId: 'ch.hellocherie.warehouse',
   appName: 'HelloCherie Warehousing',
   webDir: 'dist/mobile/browser',
   android: {

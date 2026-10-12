@@ -16,6 +16,8 @@ Status: **Draft for review (Phase 1)**
   * Q14 documents: an unsigned **packing slip** is printed at shipment. Once proof of delivery is recorded, a **signed delivery note PDF** (signature + receiver name; photos stay on the dispatch, not in the PDF) is **emailed to the customer** and kept on the dispatch for download.
   * PDF layout is a **template editable in the admin screens** (logo, company details, header/footer, HTML with placeholders, preview before saving).
   * Delivery notes are sent from **dispatch@hellocherie.ch** (Microsoft 365, SMTP; password kept in secrets).
+  * Q22 app identity (2026-10-12): app ID **`ch.hellocherie.warehouse`**, name "HelloCherie Warehousing". Mobile builds run on **Codemagic** (doc 11).
+  * Q10 devices (2026-10-12): **both** ordinary phones (camera) and rugged Android scanners (built-in scanner in keyboard-wedge mode with Enter).
   * Phase 5 defaults (see doc 08): approval required and the creator/submitter cannot approve (Q6); picking assignment optional, any authorised operator may pick (Q7).
 * Phase 4 defaults (change any time, see doc 07): the adjustment submitter cannot approve it (Q6/Q8: operators request, managers approve all); minimum remaining shelf life 0 days (Q20); picked goods stay on their bin until shipped (Q19).
 * Phase 3 defaults (change any time): CSV import with a downloadable template; barcodes of any format, optional; bins can be imported and carry a label barcode; one optional image per product.

@@ -14,6 +14,7 @@ Web app (Angular + PrimeNG), warehouse mobile app (Ionic + Capacitor), ASP.NET C
   8. [Dispatch engine (Phase 5)](docs/08-dispatch-engine.md)
   9. [Web interface (Phase 6)](docs/09-web-interface.md)
   10. [Warehouse mobile app (Phase 7)](docs/10-mobile-app.md)
+  11. [Mobile builds with Codemagic](docs/11-mobile-builds-codemagic.md)
 
 ## Local development
 

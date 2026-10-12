@@ -1,4 +1,4 @@
-package com.warehousing.mobile;
+package ch.hellocherie.warehouse;
 
 import com.getcapacitor.BridgeActivity;
 

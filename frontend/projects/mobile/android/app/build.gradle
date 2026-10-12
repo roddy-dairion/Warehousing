@@ -1,14 +1,15 @@
 apply plugin: 'com.android.application'
 
 android {
-    namespace = "com.warehousing.mobile"
+    namespace = "ch.hellocherie.warehouse"
     compileSdk = rootProject.ext.compileSdkVersion
     defaultConfig {
-        applicationId "com.warehousing.mobile"
+        applicationId "ch.hellocherie.warehouse"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
-        versionCode 1
-        versionName "1.0"
+        // CI (Codemagic) passes -PversionCode=<build number> -PversionName=<x.y.z>; local builds use 1 / 1.0.0.
+        versionCode((project.findProperty("versionCode") ?: "1").toString().toInteger())
+        versionName((project.findProperty("versionName") ?: "1.0.0").toString())
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         aaptOptions {
              // Files and dirs to omit from the packaged assets dir, modified to accommodate modern web apps.
@@ -16,8 +17,24 @@ android {
             ignoreAssetsPattern = '!.svn:!.git:!.ds_store:!*.scc:.*:!CVS:!thumbs.db:!picasa.ini:!*~'
         }
     }
+    // Release signing: the upload keystore is provided by Codemagic (android_signing), never stored in the repository.
+    // Without it (local builds) the release build is unsigned; debug builds use the Android debug key.
+    def keystorePath = System.getenv("CM_KEYSTORE_PATH")
+    signingConfigs {
+        release {
+            if (keystorePath) {
+                storeFile file(keystorePath)
+                storePassword System.getenv("CM_KEYSTORE_PASSWORD")
+                keyAlias System.getenv("CM_KEY_ALIAS")
+                keyPassword System.getenv("CM_KEY_PASSWORD")
+            }
+        }
+    }
     buildTypes {
         release {
+            if (keystorePath) {
+                signingConfig signingConfigs.release
+            }
             minifyEnabled false
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
         }
