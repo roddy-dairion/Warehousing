@@ -16,3 +16,5 @@ export * from './lib/warehouse/warehouse-context.service';
 export * from './lib/models/master-data';
 export * from './lib/api/api-base';
 export * from './lib/api/master-data.api';
+export * from './lib/models/operations';
+export * from './lib/api/operations.api';

@@ -19,7 +19,7 @@ export const NAVIGATION: NavGroup[] = [
     items: [
       { label: 'Dashboard', icon: 'pi pi-home', route: '/', permissions: [] },
       { label: 'Dispatches', icon: 'pi pi-truck', route: '/dispatches', permissions: [Permissions.DispatchesRead] },
-      { label: 'Goods receipts', icon: 'pi pi-download', route: '/receipts', permissions: [Permissions.InventoryReceive] },
+      { label: 'Goods receipts', icon: 'pi pi-download', route: '/receipts', permissions: [Permissions.InventoryReceive, Permissions.InventoryReceivePost] },
       { label: 'Stock', icon: 'pi pi-box', route: '/inventory', permissions: [Permissions.InventoryRead] },
       { label: 'Adjustments', icon: 'pi pi-sliders-h', route: '/adjustments', permissions: [Permissions.InventoryAdjust, Permissions.InventoryAdjustApprove] },
       { label: 'Bin moves', icon: 'pi pi-arrow-right-arrow-left', route: '/transfers', permissions: [Permissions.InventoryTransfer] },
@@ -41,6 +41,8 @@ export const NAVIGATION: NavGroup[] = [
       { label: 'Users', icon: 'pi pi-users', route: '/users', permissions: [Permissions.UsersManage] },
       { label: 'Reports', icon: 'pi pi-chart-bar', route: '/reports', permissions: [Permissions.ReportsRead] },
       { label: 'Audit log', icon: 'pi pi-history', route: '/audit', permissions: [Permissions.AuditRead] },
+      { label: 'Company and email', icon: 'pi pi-building-columns', route: '/settings/company', permissions: [Permissions.SettingsManage] },
+      { label: 'Document templates', icon: 'pi pi-file-edit', route: '/settings/templates', permissions: [Permissions.SettingsManage] },
     ],
   },
 ];

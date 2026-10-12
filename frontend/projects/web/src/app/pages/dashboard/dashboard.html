@@ -1,0 +1,124 @@
+<section class="page">
+  <header class="page-header">
+    <div>
+      <h1>Good to see you, {{ firstName() }}</h1>
+      @if (warehouses.current(); as wh) {
+        <p>{{ wh.name }} ({{ wh.code }})</p>
+      }
+    </div>
+    @if (data()) {
+      <div class="page-actions">
+        <p-button icon="pi pi-refresh" label="Refresh" severity="secondary" [text]="true" (onClick)="reload()" [loading]="loading()" />
+      </div>
+    }
+  </header>
+
+  @if (!warehouses.current()) {
+    <wh-need-warehouse />
+  } @else if (error(); as message) {
+    <wh-load-error [message]="message" (retry)="reload()" />
+  } @else if (!data()) {
+    <div class="tiles">
+      @for (i of [1, 2, 3, 4]; track i) { <p-skeleton height="6rem" /> }
+    </div>
+  } @else {
+    @let d = data()!;
+
+    @if ((d.failedDocuments ?? 0) > 0 || (d.failedEmails ?? 0) > 0) {
+      <div class="alert" role="alert">
+        <i class="pi pi-exclamation-triangle" aria-hidden="true"></i>
+        <span>
+          @if (d.failedDocuments) { {{ d.failedDocuments }} document(s) could not be generated. }
+          @if (d.failedEmails) { {{ d.failedEmails }} delivery-note email(s) could not be sent. }
+          Open the dispatch to regenerate or resend.
+        </span>
+      </div>
+    }
+
+    @if (d.dispatches; as f) {
+      <h2 class="section-title">Dispatches</h2>
+      <div class="pipeline">
+        <a class="stage" routerLink="/dispatches" [queryParams]="{ status: 'submitted' }"><span class="n">{{ f.awaitingApproval }}</span><span>Awaiting approval</span></a>
+        <a class="stage" routerLink="/dispatches" [queryParams]="{ status: 'approved' }"><span class="n">{{ f.toPick }}</span><span>To pick</span></a>
+        <a class="stage" routerLink="/dispatches" [queryParams]="{ status: 'picking' }"><span class="n">{{ f.picking }}</span><span>Picking</span></a>
+        <a class="stage accent" routerLink="/dispatches" [queryParams]="{ status: 'readyForDispatch' }"><span class="n">{{ f.readyToShip }}</span><span>Ready to ship</span></a>
+        <a class="stage" routerLink="/dispatches" [queryParams]="{ status: 'dispatched' }"><span class="n">{{ f.awaitingDelivery }}</span><span>Out for delivery</span></a>
+        <div class="stage done"><span class="n">{{ f.deliveredToday }}</span><span>Delivered today</span></div>
+      </div>
+    }
+
+    <div class="grid">
+      @if (d.dispatchesToAction; as list) {
+        <div class="panel">
+          <div class="panel-header"><h2>Needs your attention</h2><a routerLink="/dispatches">All dispatches</a></div>
+          @if (list.length === 0) {
+            <p class="muted">Nothing waiting for you.</p>
+          } @else {
+            <ul class="todo">
+              @for (x of list; track x.id) {
+                <li>
+                  <a [routerLink]="['/dispatches', x.id]"><span class="code">{{ x.number }}</span> {{ x.customerName }}</a>
+                  <span class="meta">{{ x.requestedDate | date: 'dd.MM.yyyy' }} <wh-doc-status kind="dispatch" [status]="x.status" /></span>
+                </li>
+              }
+            </ul>
+          }
+        </div>
+      }
+
+      @if (d.stock; as s) {
+        <div class="panel">
+          <div class="panel-header"><h2>Stock</h2><a routerLink="/inventory">Stock overview</a></div>
+          <div class="figures">
+            <div><span class="n">{{ s.productsInStock }}</span><span>products in stock</span></div>
+            <div><span class="n">{{ qty(s.available) }}</span><span>available ({{ qty(s.reserved) }} reserved)</span></div>
+            <a [class.warn]="s.lowStockProducts > 0" routerLink="/inventory" [queryParams]="{ tab: 'summary', low: 1 }"><span class="n">{{ s.lowStockProducts }}</span><span>low stock</span></a>
+            <a [class.warn]="s.expiringLots + s.expiredLots > 0" routerLink="/inventory" [queryParams]="{ tab: 'expiring' }">
+              <span class="n">{{ s.expiringLots }}</span><span>lots expiring soon @if (s.expiredLots) { · <strong>{{ s.expiredLots }} expired</strong> }</span>
+            </a>
+          </div>
+        </div>
+      }
+
+      @if (d.pendingReceipts !== null || d.adjustmentsAwaitingApproval !== null) {
+        <div class="panel">
+          <h2>Stock documents</h2>
+          <div class="figures">
+            @if (d.pendingReceipts !== null) {
+              <a routerLink="/receipts" [queryParams]="{ status: 'draft' }"><span class="n">{{ d.pendingReceipts }}</span><span>draft receipts</span></a>
+            }
+            @if (d.adjustmentsAwaitingApproval !== null) {
+              <a routerLink="/adjustments" [queryParams]="{ status: 'pendingApproval' }" [class.warn]="d.adjustmentsAwaitingApproval > 0">
+                <span class="n">{{ d.adjustmentsAwaitingApproval }}</span><span>adjustments awaiting approval</span>
+              </a>
+            }
+          </div>
+        </div>
+      }
+
+      @if (d.recentMovements; as moves) {
+        <div class="panel wide">
+          <div class="panel-header"><h2>Recent stock movements</h2><a routerLink="/inventory" [queryParams]="{ tab: 'movements' }">All movements</a></div>
+          @if (moves.length === 0) {
+            <p class="muted">No stock movements yet. Post a goods receipt to bring stock in.</p>
+          } @else {
+            <table class="simple">
+              <tbody>
+                @for (m of moves; track $index) {
+                  <tr>
+                    <td class="muted">{{ m.occurredAt | date: 'dd.MM HH:mm' }}</td>
+                    <td>{{ movementLabel(m.type) }}</td>
+                    <td><span class="code">{{ m.sku }}</span> {{ m.productName }}</td>
+                    <td>{{ m.locationCode }}@if (m.lotNo) { · {{ m.lotNo }} }</td>
+                    <td class="num" [class.neg]="m.quantity < 0">{{ m.quantity > 0 ? '+' : '' }}{{ qty(m.quantity) }}</td>
+                    <td class="muted">{{ m.sourceNumber }}</td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+          }
+        </div>
+      }
+    </div>
+  }
+</section>

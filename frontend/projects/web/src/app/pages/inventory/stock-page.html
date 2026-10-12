@@ -1,0 +1,192 @@
+<section class="page">
+  <header class="page-header">
+    <div>
+      <h1>Stock</h1>
+      <p>On hand includes reserved stock. Available = on hand − reserved. Sellable = available in pickable bins from usable lots.</p>
+    </div>
+  </header>
+
+  @if (!warehouseId()) {
+    <wh-need-warehouse />
+  } @else {
+    <p-tabs [value]="tab()" (valueChange)="selectTab($event)" [scrollable]="true">
+      <p-tablist>
+        <p-tab value="summary">By product</p-tab>
+        <p-tab value="balances">By bin and lot</p-tab>
+        <p-tab value="movements">Movements</p-tab>
+        <p-tab value="expiring">Expiring</p-tab>
+        @if (canReconcile) { <p-tab value="reconciliation">Check</p-tab> }
+      </p-tablist>
+    </p-tabs>
+
+    @if (error(); as message) {
+      <wh-load-error [message]="message" (retry)="reload()" />
+    }
+
+    @switch (tab()) {
+      @case ('summary') {
+        <div class="toolbar">
+          <p-iconfield class="grow">
+            <p-inputicon styleClass="pi pi-search" />
+            <input pInputText type="search" placeholder="SKU or name" [(ngModel)]="search" (ngModelChange)="onSearch()" aria-label="Search products" />
+          </p-iconfield>
+          <span class="field-inline"><p-toggleswitch inputId="low" [(ngModel)]="lowOnly" (onChange)="reload()" /><label for="low">Low stock only</label></span>
+          <span class="field-inline"><p-toggleswitch inputId="withStock" [(ngModel)]="withStockOnly" (onChange)="reload()" /><label for="withStock">With stock only</label></span>
+        </div>
+        <p-table [value]="summary()" [lazy]="true" (onLazyLoad)="onSummaryLazy($event)" [loading]="loading()" [paginator]="true" [rows]="50" [rowsPerPageOptions]="[50, 100, 200]"
+          [totalRecords]="total()" sortField="sku" [sortOrder]="1" dataKey="productId" [rowHover]="true" [tableStyle]="{ 'min-width': '56rem' }"
+          [showCurrentPageReport]="true" currentPageReportTemplate="{first}–{last} of {totalRecords}">
+          <ng-template #header>
+            <tr>
+              <th pSortableColumn="sku">SKU <p-sortIcon field="sku" /></th>
+              <th pSortableColumn="productName">Product <p-sortIcon field="productName" /></th>
+              <th class="num" pSortableColumn="onHand">On hand <p-sortIcon field="onHand" /></th>
+              <th class="num" pSortableColumn="reserved">Reserved <p-sortIcon field="reserved" /></th>
+              <th class="num" pSortableColumn="available">Available <p-sortIcon field="available" /></th>
+              <th class="num" pSortableColumn="sellable">Sellable <p-sortIcon field="sellable" /></th>
+              <th class="num">Min.</th>
+              <th>Unit</th>
+            </tr>
+          </ng-template>
+          <ng-template #body let-r>
+            <tr class="clickable-row" (click)="openProduct(r.productId)" (keydown.enter)="openProduct(r.productId)" tabindex="0">
+              <td class="code">{{ r.sku }}</td>
+              <td>{{ r.productName }} @if (r.isLow) { <p-tag value="Low" severity="warn" /> } @if (!r.isActive) { <p-tag value="Inactive" severity="secondary" /> }</td>
+              <td class="num">{{ qty(r.onHand) }}</td>
+              <td class="num">{{ qty(r.reserved) }}</td>
+              <td class="num strong">{{ qty(r.available) }}</td>
+              <td class="num">{{ qty(r.sellable) }}</td>
+              <td class="num muted">{{ qty(r.minStockQty) }}</td>
+              <td>{{ r.baseUnitCode }}</td>
+            </tr>
+          </ng-template>
+          <ng-template #emptymessage>
+            <tr><td colspan="8" class="empty">{{ lowOnly ? 'No products are below their minimum stock.' : 'No stock yet. Post a goods receipt to bring stock in.' }}</td></tr>
+          </ng-template>
+        </p-table>
+      }
+
+      @case ('balances') {
+        <div class="toolbar">
+          <p-iconfield class="grow">
+            <p-inputicon styleClass="pi pi-search" />
+            <input pInputText type="search" placeholder="SKU, name, bin or lot" [(ngModel)]="search" (ngModelChange)="onSearch()" aria-label="Search stock" />
+          </p-iconfield>
+        </div>
+        <p-table [value]="balances()" [lazy]="true" (onLazyLoad)="onBalancesLazy($event)" [loading]="loading()" [paginator]="true" [rows]="50" [rowsPerPageOptions]="[50, 100, 200]"
+          [totalRecords]="total()" sortField="sku" [sortOrder]="1" dataKey="id" [rowHover]="true" [tableStyle]="{ 'min-width': '60rem' }"
+          [showCurrentPageReport]="true" currentPageReportTemplate="{first}–{last} of {totalRecords}">
+          <ng-template #header>
+            <tr>
+              <th pSortableColumn="sku">SKU <p-sortIcon field="sku" /></th>
+              <th>Product</th>
+              <th pSortableColumn="locationCode">Bin <p-sortIcon field="locationCode" /></th>
+              <th pSortableColumn="lotNo">Lot <p-sortIcon field="lotNo" /></th>
+              <th pSortableColumn="expiryDate">Expiry <p-sortIcon field="expiryDate" /></th>
+              <th class="num" pSortableColumn="onHand">On hand <p-sortIcon field="onHand" /></th>
+              <th class="num" pSortableColumn="reserved">Reserved <p-sortIcon field="reserved" /></th>
+              <th class="num" pSortableColumn="available">Available <p-sortIcon field="available" /></th>
+            </tr>
+          </ng-template>
+          <ng-template #body let-b>
+            <tr class="clickable-row" (click)="openProduct(b.productId)" (keydown.enter)="openProduct(b.productId)" tabindex="0">
+              <td class="code">{{ b.sku }}</td>
+              <td>{{ b.productName }}</td>
+              <td>{{ b.locationCode }} @if (!b.isPickable) { <p-tag [value]="b.locationType === 'storage' ? 'Not pickable' : b.locationType" severity="secondary" /> }</td>
+              <td>{{ b.lotNo ?? '—' }} @if (b.lotStatus && b.lotStatus !== 'released') { <p-tag [value]="b.lotStatus" severity="danger" /> }</td>
+              <td>{{ b.expiryDate ? (b.expiryDate | date: 'dd.MM.yyyy') : '—' }}</td>
+              <td class="num">{{ qty(b.onHand) }} <span class="muted">{{ b.baseUnitCode }}</span></td>
+              <td class="num">{{ qty(b.reserved) }}</td>
+              <td class="num strong">{{ qty(b.available) }}</td>
+            </tr>
+          </ng-template>
+          <ng-template #emptymessage><tr><td colspan="8" class="empty">No stock found.</td></tr></ng-template>
+        </p-table>
+      }
+
+      @case ('movements') {
+        <div class="toolbar">
+          <p-iconfield class="grow">
+            <p-inputicon styleClass="pi pi-search" />
+            <input pInputText type="search" placeholder="SKU, name, bin, lot or document number" [(ngModel)]="search" (ngModelChange)="onSearch()" aria-label="Search movements" />
+          </p-iconfield>
+          <p-select [options]="movementTypes" optionLabel="label" optionValue="value" [(ngModel)]="movementType" (onChange)="reload()" placeholder="All types" [showClear]="true" ariaLabel="Movement type" />
+          <p-datepicker [(ngModel)]="movementRange" selectionMode="range" [readonlyInput]="true" dateFormat="dd.mm.yy" placeholder="Any date" [showClear]="true"
+            (onSelect)="reload()" (onClear)="reload()" appendTo="body" ariaLabel="Date range" />
+        </div>
+        <p-table [value]="movements()" [lazy]="true" (onLazyLoad)="onMovementsLazy($event)" [loading]="loading()" [paginator]="true" [rows]="50" [rowsPerPageOptions]="[50, 100, 200]"
+          [totalRecords]="total()" dataKey="id" [rowHover]="true" [tableStyle]="{ 'min-width': '64rem' }"
+          [showCurrentPageReport]="true" currentPageReportTemplate="{first}–{last} of {totalRecords}">
+          <ng-template #header>
+            <tr><th>When</th><th>Type</th><th>Product</th><th>Bin</th><th>Lot</th><th class="num">Change</th><th class="num">On hand after</th><th>Document</th><th>By</th></tr>
+          </ng-template>
+          <ng-template #body let-m>
+            <tr>
+              <td class="nowrap">{{ m.occurredAt | date: 'dd.MM.yyyy HH:mm' }}</td>
+              <td>{{ movementLabel(m.type) }}</td>
+              <td><span class="code">{{ m.sku }}</span> {{ m.productName }}</td>
+              <td>{{ m.locationCode }}</td>
+              <td>{{ m.lotNo ?? '—' }}</td>
+              <td class="num" [class.neg]="m.quantity < 0">{{ m.quantity > 0 ? '+' : '' }}{{ qty(m.quantity) }}</td>
+              <td class="num">{{ qty(m.onHandAfter) }}</td>
+              <td>{{ m.sourceNumber ?? '—' }}@if (m.reason) { <span class="muted"> · {{ m.reason }}</span> }</td>
+              <td>{{ m.createdByName ?? '—' }}</td>
+            </tr>
+          </ng-template>
+          <ng-template #emptymessage><tr><td colspan="9" class="empty">No movements match these filters.</td></tr></ng-template>
+        </p-table>
+      }
+
+      @case ('expiring') {
+        <div class="toolbar">
+          <label for="days">Expiring within</label>
+          <p-inputnumber inputId="days" [(ngModel)]="expiryDays" [min]="0" [max]="3650" suffix=" days" [showButtons]="true" (onBlur)="reload()" />
+          <p-button label="Show" severity="secondary" [outlined]="true" (onClick)="reload()" />
+        </div>
+        <p-table [value]="expiring()" [loading]="loading()" dataKey="lotId" [rowHover]="true" [tableStyle]="{ 'min-width': '52rem' }">
+          <ng-template #header>
+            <tr><th>Expiry</th><th>Product</th><th>Lot</th><th>Status</th><th class="num">On hand</th><th class="num">Reserved</th><th>Bins</th></tr>
+          </ng-template>
+          <ng-template #body let-l>
+            <tr class="clickable-row" (click)="openProduct(l.productId)">
+              <td class="nowrap">
+                {{ l.expiryDate | date: 'dd.MM.yyyy' }}
+                @if (l.daysLeft < 0) { <p-tag value="Expired" severity="danger" /> } @else { <span class="muted">({{ l.daysLeft }} d)</span> }
+              </td>
+              <td><span class="code">{{ l.sku }}</span> {{ l.productName }}</td>
+              <td>{{ l.lotNo }}</td>
+              <td>{{ l.status }}</td>
+              <td class="num">{{ qty(l.onHand) }} <span class="muted">{{ l.baseUnitCode }}</span></td>
+              <td class="num">{{ qty(l.reserved) }}</td>
+              <td>{{ l.locations.join(', ') }}</td>
+            </tr>
+          </ng-template>
+          <ng-template #emptymessage><tr><td colspan="7" class="empty">No lots expire within {{ expiryDays }} days.</td></tr></ng-template>
+        </p-table>
+      }
+
+      @case ('reconciliation') {
+        <div class="panel">
+          <h2>Stock check</h2>
+          <p class="muted">Compares every balance with its movement history and open reservations. It never changes data; any difference needs investigation.</p>
+          <p-button label="Run check" icon="pi pi-check-circle" (onClick)="runReconciliation()" [loading]="loading()" />
+          @if (reconciliation(); as r) {
+            @if (r.issues.length === 0) {
+              <p class="ok"><i class="pi pi-check" aria-hidden="true"></i> All {{ r.balancesChecked }} balances agree with the ledger ({{ r.checkedAt | date: 'dd.MM.yyyy HH:mm' }}).</p>
+            } @else {
+              <p class="neg">{{ r.issues.length }} balance(s) disagree:</p>
+              <p-table [value]="r.issues" [tableStyle]="{ 'min-width': '48rem' }">
+                <ng-template #header><tr><th>SKU</th><th>Bin</th><th>Lot</th><th class="num">On hand</th><th class="num">Ledger</th><th class="num">Reserved</th><th class="num">Open reservations</th></tr></ng-template>
+                <ng-template #body let-i>
+                  <tr><td class="code">{{ i.sku }}</td><td>{{ i.locationCode }}</td><td>{{ i.lotNo ?? '—' }}</td><td class="num">{{ qty(i.onHand) }}</td><td class="num">{{ qty(i.ledgerOnHand) }}</td><td class="num">{{ qty(i.reserved) }}</td><td class="num">{{ qty(i.openReservations) }}</td></tr>
+                </ng-template>
+              </p-table>
+            }
+          }
+        </div>
+      }
+    }
+  }
+</section>
+
+<wh-product-stock-drawer [productId]="drawerProductId()" [warehouseId]="warehouseId()" (closed)="drawerProductId.set(null)" />

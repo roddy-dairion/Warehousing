@@ -1,0 +1,148 @@
+<section class="page">
+  <a class="back-link" routerLink="/adjustments"><i class="pi pi-arrow-left" aria-hidden="true"></i> Stock adjustments</a>
+
+  @if (!warehouses.current() && isNew()) {
+    <wh-need-warehouse />
+  } @else if (loading()) {
+    <p-skeleton height="2rem" width="20rem" />
+    <p-skeleton height="16rem" />
+  } @else if (loadError(); as m) {
+    <wh-load-error [message]="m" (retry)="load(id()!)" />
+  } @else {
+    @let a = adjustment();
+    <header class="page-header">
+      <div>
+        @if (a) {
+          <h1>{{ a.number }} <wh-doc-status kind="adjustment" [status]="a.status" /></h1>
+          <p>
+            Requested by {{ a.submittedByName ?? a.createdByName ?? '—' }}
+            @if (a.decidedAt) { · {{ a.status === 'posted' ? 'approved' : 'decided' }} {{ a.decidedAt | date: 'dd.MM.yyyy HH:mm' }} by {{ a.decidedByName }} }
+          </p>
+        } @else {
+          <h1>New stock adjustment</h1>
+          <p>Positive quantities add stock, negative quantities remove it. Nothing changes until a manager approves.</p>
+        }
+      </div>
+      <div class="page-actions">
+        @if (editable()) {
+          @if (a) { <p-button label="Cancel" severity="danger" [outlined]="true" (onClick)="cancel()" [disabled]="busy()" /> }
+          <p-button label="Save draft" severity="secondary" [outlined]="true" icon="pi pi-save" (onClick)="save()" [loading]="busy()" />
+          <p-button label="Submit for approval" icon="pi pi-send" (onClick)="submit()" [disabled]="busy()" />
+        }
+        @if (a?.status === 'pendingApproval' || a?.status === 'rejected') {
+          @if (canRequest) { <p-button label="Back to draft" severity="secondary" [outlined]="true" (onClick)="reopen()" [disabled]="busy()" /> }
+          @if (a?.status === 'pendingApproval' && canRequest) { <p-button label="Cancel" severity="danger" [text]="true" (onClick)="cancel()" [disabled]="busy()" /> }
+        }
+        @if (a?.canDecide) {
+          <p-button label="Reject" severity="danger" [outlined]="true" (onClick)="decisionText = ''; decision.set('reject')" [disabled]="busy()" />
+          <p-button label="Approve" icon="pi pi-check" (onClick)="decisionText = ''; decision.set('approve')" [disabled]="busy()" />
+        }
+      </div>
+    </header>
+
+    @if (a?.status === 'pendingApproval' && !a?.canDecide) {
+      <div class="notice warn">Waiting for a manager's approval. The person who submitted an adjustment cannot approve it.</div>
+    }
+    @if (a?.decisionNote) {
+      <div class="notice" [class.danger]="a?.status === 'rejected'">{{ a?.status === 'rejected' ? 'Rejected' : 'Note' }}: {{ a?.decisionNote }}</div>
+    }
+
+    <form class="panel" [formGroup]="form" novalidate>
+      <div class="form-grid">
+        <div class="field">
+          <label for="reason">Reason</label>
+          <p-select inputId="reason" formControlName="reason" [options]="reasons" optionLabel="label" optionValue="value" placeholder="Choose a reason" appendTo="body" />
+          <wh-field-error [control]="form.controls.reason" requiredText="Choose a reason." />
+        </div>
+        <div class="field span-all">
+          <label for="notes">Notes</label>
+          <textarea pTextarea id="notes" formControlName="notes" rows="2" [autoResize]="true" placeholder="Required when the reason is Other"></textarea>
+          <wh-field-error [control]="form.controls.notes" />
+        </div>
+      </div>
+    </form>
+
+    <div class="panel">
+      <div class="panel-header">
+        <h2>Lines</h2>
+        @if (editable()) { <p-button label="Add line" icon="pi pi-plus" size="small" [outlined]="true" (onClick)="addLine()" /> }
+      </div>
+      @if (editable()) {
+        <div class="lines" [formGroup]="form">
+          <div formArrayName="lines">
+            @for (line of lines.controls; track line; let i = $index) {
+              @let p = product(line);
+              <div class="line" [formGroupName]="i">
+                <span class="line-no">{{ i + 1 }}</span>
+                <div class="field product">
+                  <label [for]="'p' + i">Product</label>
+                  <wh-product-picker [inputId]="'p' + i" formControlName="productId" [activeOnly]="false" (productChange)="onProduct(line, $event)" />
+                  <wh-field-error [control]="line.controls.productId" requiredText="Choose a product." />
+                </div>
+                <div class="field bin">
+                  <label [for]="'b' + i">Bin</label>
+                  <p-select [inputId]="'b' + i" formControlName="locationId" [options]="bins()" optionLabel="code" optionValue="id" [filter]="true" filterBy="code" placeholder="Choose" appendTo="body" />
+                  <wh-field-error [control]="line.controls.locationId" requiredText="Choose a bin." />
+                </div>
+                @if (p?.isLotTracked) {
+                  <div class="field lot">
+                    <label [for]="'l' + i">Lot</label>
+                    <input pInputText [id]="'l' + i" formControlName="lotNo" />
+                  </div>
+                  @if (p?.hasExpiry && (line.controls.quantityDelta.value ?? 0) > 0) {
+                    <div class="field date">
+                      <label [for]="'x' + i">Expiry (new lot)</label>
+                      <p-datepicker [inputId]="'x' + i" formControlName="expiryDate" dateFormat="dd.mm.yy" appendTo="body" />
+                    </div>
+                  }
+                }
+                <div class="field qty">
+                  <label [for]="'q' + i">Change {{ p ? '(' + p.baseUnitCode + ')' : '' }}</label>
+                  <p-inputnumber [inputId]="'q' + i" formControlName="quantityDelta" [maxFractionDigits]="3" [useGrouping]="false" placeholder="+/−" />
+                  <wh-field-error [control]="line.controls.quantityDelta" requiredText="Enter + or − quantity." />
+                </div>
+                <div class="field wide">
+                  <label [for]="'n' + i">Line note</label>
+                  <input pInputText [id]="'n' + i" formControlName="notes" />
+                </div>
+                <p-button class="remove" icon="pi pi-trash" severity="secondary" [text]="true" ariaLabel="Remove line" (onClick)="removeLine(i)" />
+              </div>
+            }
+          </div>
+        </div>
+      } @else if (a) {
+        <p-table [value]="a.lines" [tableStyle]="{ 'min-width': '48rem' }">
+          <ng-template #header>
+            <tr><th>#</th><th>Product</th><th>Bin</th><th>Lot</th><th class="num">Change</th>@if (a.status === 'pendingApproval' || a.status === 'draft') { <th class="num">On hand now</th> }<th>Note</th></tr>
+          </ng-template>
+          <ng-template #body let-l>
+            <tr>
+              <td>{{ l.lineNo }}</td>
+              <td><span class="code">{{ l.sku }}</span> {{ l.productName }}</td>
+              <td>{{ l.locationCode }}</td>
+              <td>{{ l.lotNo ?? '—' }}@if (l.expiryDate) { <span class="muted"> · exp. {{ l.expiryDate | date: 'dd.MM.yyyy' }}</span> }</td>
+              <td class="num" [style.color]="l.quantityDelta < 0 ? '#b42318' : '#067647'">{{ l.quantityDelta > 0 ? '+' : '' }}{{ qty(l.quantityDelta) }} {{ l.baseUnitCode }}</td>
+              @if (a.status === 'pendingApproval' || a.status === 'draft') { <td class="num">{{ qty(l.currentOnHand) }}</td> }
+              <td>{{ l.notes ?? '' }}</td>
+            </tr>
+          </ng-template>
+        </p-table>
+      }
+    </div>
+  }
+</section>
+
+<p-dialog [visible]="!!decision()" (visibleChange)="!$event && decision.set(null)" [header]="decision() === 'approve' ? 'Approve adjustment' : 'Reject adjustment'" [modal]="true" [style]="{ width: 'min(30rem, 95vw)' }">
+  @if (decision() === 'approve') {
+    <p>Approving changes stock now, for every line. It fails if a line would make stock negative or remove reserved stock.</p>
+  }
+  <div class="field">
+    <label for="decisionText">{{ decision() === 'approve' ? 'Note (optional)' : 'Reason' }}</label>
+    <input pInputText id="decisionText" [(ngModel)]="decisionText" />
+  </div>
+  <ng-template #footer>
+    <p-button label="Back" severity="secondary" [text]="true" (onClick)="decision.set(null)" />
+    <p-button [label]="decision() === 'approve' ? 'Approve' : 'Reject'" [severity]="decision() === 'approve' ? 'primary' : 'danger'" (onClick)="decide()"
+      [disabled]="decision() === 'reject' && !decisionText.trim()" [loading]="busy()" />
+  </ng-template>
+</p-dialog>

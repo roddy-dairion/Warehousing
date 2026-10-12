@@ -1,0 +1,23 @@
+/* Shared layout for document line editors (receipts, adjustments, dispatches, moves). */
+.lines .line {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  align-items: flex-start;
+  padding: 0.75rem 0;
+  border-bottom: 1px solid var(--wh-line);
+}
+.lines .line:last-child { border-bottom: 0; }
+.line-no { width: 1.5rem; padding-top: 2rem; color: var(--wh-muted); font-size: 0.875rem; }
+.field.product { flex: 3 1 18rem; }
+.field.qty { flex: 0 1 8rem; }
+.field.unit { flex: 0 1 9rem; }
+.field.bin { flex: 1 1 10rem; }
+.field.lot { flex: 1 1 8rem; }
+.field.date { flex: 0 1 9rem; }
+.field.wide { flex: 2 1 14rem; }
+.remove { padding-top: 1.6rem; }
+.notice { padding: 0.75rem 1rem; border-radius: 8px; border: 1px solid var(--wh-line); background: var(--wh-panel); }
+.notice.danger { border-color: #f1aeb5; background: #fdf2f3; color: #7a1f2b; }
+.notice.warn { border-color: #f0c36d; background: #fff7e6; color: #6b4a00; }
+h1 wh-doc-status { vertical-align: middle; margin-left: 0.5rem; }

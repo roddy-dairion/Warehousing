@@ -1,0 +1,357 @@
+<section class="page">
+  <a class="back-link" routerLink="/dispatches"><i class="pi pi-arrow-left" aria-hidden="true"></i> Dispatches</a>
+
+  @if (loading()) {
+    <p-skeleton height="2rem" width="20rem" />
+    <p-skeleton height="18rem" />
+  } @else if (loadError(); as m) {
+    <wh-load-error [message]="m" (retry)="load(id())" />
+  } @else if (dispatch(); as d) {
+    <header class="page-header">
+      <div>
+        <h1>{{ d.number }} <wh-doc-status kind="dispatch" [status]="d.status" /></h1>
+        <p>{{ d.customerName }} · requested {{ d.requestedDate | date: 'dd.MM.yyyy' }}@if (d.customerOrderReference) { · ref. {{ d.customerOrderReference }} }</p>
+      </div>
+      <div class="page-actions">
+        @if (d.actions.canEdit) { <p-button label="Edit" icon="pi pi-pencil" severity="secondary" [outlined]="true" (onClick)="editDraft()" /> }
+        @if (d.actions.canSubmit) { <p-button label="Submit" icon="pi pi-send" (onClick)="submit()" [disabled]="busy()" /> }
+        @if (d.actions.canReturn) { <p-button label="Return to draft" severity="secondary" [outlined]="true" (onClick)="openReason('return')" [disabled]="busy()" /> }
+        @if (d.actions.canApprove) { <p-button label="Approve" icon="pi pi-check" (onClick)="openApprove()" [disabled]="busy()" /> }
+        @if (d.status === 'submitted' && !d.actions.canApprove && d.actions.canReturn) {
+          <span class="hint-inline">Someone else must approve (you created or submitted it).</span>
+        }
+        @if (d.actions.canStartPicking) { <p-button label="Start picking" icon="pi pi-play" severity="secondary" [outlined]="true" (onClick)="startPicking(true)" [disabled]="busy()" /> }
+        @if (d.actions.canCompletePicking) { <p-button label="Picking done" icon="pi pi-check-square" (onClick)="ready()" [disabled]="busy()" /> }
+        @if (d.actions.canReopenPicking) { <p-button label="Reopen picking" severity="secondary" [outlined]="true" (onClick)="reopenPicking()" [disabled]="busy()" /> }
+        @if (d.actions.canShip) { <p-button label="Ship" icon="pi pi-truck" (onClick)="openShip()" [disabled]="busy()" /> }
+        @if (d.actions.canDeliver) { <p-button label="Record delivery" icon="pi pi-pen-to-square" (onClick)="openDeliver()" [disabled]="busy()" /> }
+        @if (d.actions.canCancel) { <p-button label="Cancel" severity="danger" [text]="true" (onClick)="openReason('cancel')" [disabled]="busy()" /> }
+      </div>
+    </header>
+
+    @if (d.status === 'cancelled') {
+      <div class="notice danger">Cancelled {{ d.cancelledAt | date: 'dd.MM.yyyy HH:mm' }} by {{ d.cancelledByName }}: {{ d.cancelReason }}</div>
+    }
+
+    <div class="info-grid">
+      <div class="panel">
+        <h2>Customer</h2>
+        <p><strong>{{ d.customerName }}</strong>&ngsp;<span class="muted">{{ d.customerReference }}</span></p>
+        <p class="muted">{{ d.customerEmail ?? 'No email address: the delivery note cannot be emailed automatically.' }}</p>
+      </div>
+      <div class="panel">
+        <h2>Deliver to</h2>
+        @if (d.shipTo; as a) {
+          <p>{{ a.label }}<br />{{ a.line1 }}@if (a.line2) { <br />{{ a.line2 }} }<br />{{ a.city }}{{ a.country ? ', ' + a.country : '' }}</p>
+          @if (a.contactName || a.phone) { <p class="muted">{{ a.contactName }} {{ a.phone }}</p> }
+        } @else {
+          <p class="muted">The customer's default address is used when the dispatch is submitted.</p>
+        }
+      </div>
+      <div class="panel">
+        <h2>Progress</h2>
+        <dl class="facts">
+          <dt>Created</dt><dd>{{ d.createdAt | date: 'dd.MM.yyyy HH:mm' }} · {{ d.createdByName }}</dd>
+          @if (d.approvedAt) { <dt>Approved</dt><dd>{{ d.approvedAt | date: 'dd.MM.yyyy HH:mm' }} · {{ d.approvedByName }}</dd> }
+          @if (d.assignedToName) { <dt>Picker</dt><dd>{{ d.assignedToName }}</dd> }
+          @if (d.shippedAt) { <dt>Shipped</dt><dd>{{ d.shippedAt | date: 'dd.MM.yyyy HH:mm' }} · {{ d.shippedByName }}</dd> }
+          @if (d.carrier || d.trackingNumber) { <dt>Carrier</dt><dd>{{ d.carrier }} {{ d.trackingNumber }}</dd> }
+          @if (d.shortDecision) { <dt>Short</dt><dd>{{ d.shortDecision === 'backorder' ? 'Backorder for the rest' : 'Closed short' }}</dd> }
+          @if (d.deliveredAt) { <dt>Delivered</dt><dd>{{ d.deliveredAt | date: 'dd.MM.yyyy HH:mm' }}</dd> }
+          @if (d.backorderOfNumber) { <dt>Backorder of</dt><dd><a [routerLink]="['/dispatches', d.backorderOfId]">{{ d.backorderOfNumber }}</a></dd> }
+          @for (b of d.backorders; track b.id) { <dt>Backorder</dt><dd><a [routerLink]="['/dispatches', b.id]">{{ b.number }}</a> ({{ statusInfo(b.status).label }})</dd> }
+        </dl>
+      </div>
+    </div>
+
+    <div class="panel">
+      <h2>Products</h2>
+      <p-table [value]="d.lines" [tableStyle]="{ 'min-width': '48rem' }">
+        <ng-template #header>
+          <tr><th>#</th><th>Product</th><th class="num">Ordered</th><th class="num">Reserved</th><th class="num">Picked</th><th class="num">Shipped</th><th>Note</th></tr>
+        </ng-template>
+        <ng-template #body let-l>
+          <tr>
+            <td>{{ l.lineNo }}</td>
+            <td><span class="code">{{ l.sku }}</span> {{ l.productName }}</td>
+            <td class="num">{{ qty(l.quantity) }} {{ l.baseUnitCode }}@if (l.productUnitId) { <div class="muted small">{{ qty(l.enteredQuantity) }} {{ l.unitCode }}</div> }</td>
+            <td class="num">{{ qty(l.quantityReserved) }}</td>
+            <td class="num" [class.short]="l.quantityReserved > 0 && l.quantityPicked < l.quantityReserved && d.status !== 'approved'">{{ qty(l.quantityPicked) }}</td>
+            <td class="num">{{ qty(l.quantityShipped) }}</td>
+            <td>{{ l.notes ?? '' }}</td>
+          </tr>
+        </ng-template>
+      </p-table>
+      @if (d.notes) { <p class="muted">{{ d.notes }}</p> }
+    </div>
+
+    @if (showPicking() && pickList(); as pl) {
+      <div class="panel">
+        <div class="panel-header">
+          <h2>Picking</h2>
+          @if (d.actions.canPick) { <p-button label="Report a problem" icon="pi pi-flag" severity="secondary" [text]="true" (onClick)="openDiscrepancy()" /> }
+        </div>
+        @if (d.actions.canPick) {
+          <form class="scan" (ngSubmit)="scan(lotInput.value)" aria-label="Scan to pick">
+            <div class="field"><label for="scanBin">Bin</label><input pInputText id="scanBin" name="scanBin" [(ngModel)]="scanBin" autocomplete="off" placeholder="Scan bin label" /></div>
+            <div class="field"><label for="scanCode">Product barcode</label><input pInputText id="scanCode" name="scanCode" [(ngModel)]="scanCode" autocomplete="off" placeholder="Scan product or pack" /></div>
+            <div class="field narrow"><label for="scanLot">Lot</label><input pInputText #lotInput id="scanLot" name="scanLot" autocomplete="off" /></div>
+            <div class="field narrow"><label for="scanQty">Qty</label><p-inputnumber inputId="scanQty" name="scanQty" [(ngModel)]="scanQty" [min]="0" [maxFractionDigits]="3" [useGrouping]="false" /></div>
+            <p-button type="submit" label="Pick" icon="pi pi-check" [disabled]="busy() || !scanBin || !scanCode" />
+          </form>
+        }
+        <p-table [value]="pl.tasks" [tableStyle]="{ 'min-width': '52rem' }">
+          <ng-template #header>
+            <tr><th>Bin</th><th>Product</th><th>Lot</th><th class="num">To pick</th><th class="num">Picked</th><th></th></tr>
+          </ng-template>
+          <ng-template #body let-t>
+            <tr [class.done]="t.remaining === 0">
+              <td class="code">{{ t.locationCode }}</td>
+              <td><span class="code">{{ t.sku }}</span> {{ t.productName }}</td>
+              <td>{{ t.lotNo ?? '—' }}@if (t.expiryDate) { <span class="muted"> · {{ t.expiryDate | date: 'dd.MM.yyyy' }}</span> }</td>
+              <td class="num">{{ qty(t.quantity) }} {{ t.baseUnitCode }}</td>
+              <td class="num">{{ qty(t.picked) }}</td>
+              <td class="actions">
+                @if (d.actions.canPick && t.remaining > 0) {
+                  <p-button label="Pick" size="small" (onClick)="openPick(t)" [disabled]="busy()" />
+                  <p-button label="Other bin" size="small" severity="secondary" [text]="true" (onClick)="openRealloc(t)" [disabled]="busy()" />
+                } @else if (t.remaining === 0) {
+                  <i class="pi pi-check ok" aria-label="Picked"></i>
+                }
+              </td>
+            </tr>
+          </ng-template>
+          <ng-template #emptymessage><tr><td colspan="6" class="empty">Nothing to pick.</td></tr></ng-template>
+        </p-table>
+        @if (recentPicks().length > 0) {
+          <h3>Your recent picks</h3>
+          <ul class="recent">
+            @for (p of recentPicks(); track p.pickId) {
+              <li>
+                <span>{{ p.sku }} · {{ qty(p.quantity) }} from {{ p.locationCode }}@if (p.lotNo) { · lot {{ p.lotNo }} }</span>
+                @if (d.status === 'picking') { <p-button label="Undo" size="small" severity="secondary" [text]="true" (onClick)="undo(p)" [disabled]="busy()" /> }
+              </li>
+            }
+          </ul>
+        }
+      </div>
+    }
+
+    @if (d.proofOfDelivery; as pod) {
+      <div class="panel">
+        <h2>Proof of delivery</h2>
+        <p>Received by <strong>{{ pod.receiverName }}</strong> on {{ pod.deliveredAt | date: 'dd.MM.yyyy HH:mm' }}@if (pod.recordedByName) { · recorded by {{ pod.recordedByName }} }</p>
+        @if (pod.notes) { <p class="muted">{{ pod.notes }}</p> }
+        <div class="pod">
+          <figure class="signature"><wh-auth-image [load]="podLoader(pod.signatureFileId)" alt="Signature" maxHeight="8rem" /><figcaption>Signature</figcaption></figure>
+          @for (f of pod.photoFileIds; track f) {
+            <figure><wh-auth-image [load]="podLoader(f)" alt="Delivery photo" maxHeight="10rem" /></figure>
+          }
+        </div>
+      </div>
+    }
+
+    @if (d.documents.length > 0 || d.emails.length > 0) {
+      <div class="panel">
+        <h2>Documents and emails</h2>
+        <ul class="docs">
+          @for (doc of d.documents; track doc.id) {
+            <li>
+              <i class="pi pi-file-pdf" aria-hidden="true"></i>
+              <span class="grow">
+                {{ doc.type === 'deliveryNote' ? 'Signed delivery note' : 'Packing slip' }}
+                <span class="muted">· {{ doc.requestedAt | date: 'dd.MM.yyyy HH:mm' }}@if (doc.templateVersion) { · template v{{ doc.templateVersion }} }</span>
+                @if (doc.status === 'pending') { <p-tag value="Generating…" severity="info" /> }
+                @if (doc.status === 'failed' || doc.lastError) { <span class="error-text"> {{ doc.lastError }}</span> }
+              </span>
+              @if (doc.status === 'generated') {
+                <p-button label="Open" size="small" [text]="true" (onClick)="openDocument(doc)" />
+                <p-button icon="pi pi-download" size="small" [text]="true" ariaLabel="Download" (onClick)="openDocument(doc, true)" />
+              }
+            </li>
+          }
+          @for (m of d.emails; track m.id) {
+            <li>
+              <i class="pi pi-envelope" aria-hidden="true"></i>
+              <span class="grow">
+                {{ m.subject }} <span class="muted">→ {{ m.to }}</span>
+                <p-tag [value]="m.status === 'sent' ? 'Sent' : m.status === 'failed' ? 'Failed' : 'Queued'" [severity]="m.status === 'sent' ? 'success' : m.status === 'failed' ? 'danger' : 'info'" />
+                @if (m.lastError) { <span class="error-text"> {{ m.lastError }} (attempt {{ m.attempts }})</span> }
+              </span>
+            </li>
+          }
+        </ul>
+        <div class="doc-actions">
+          @if ((d.status === 'dispatched' || d.status === 'delivered') && d.actions !== null) {
+            <p-button label="Regenerate packing slip" size="small" severity="secondary" [text]="true" (onClick)="regenerate('packingSlip')" [disabled]="busy()" />
+          }
+          @if (d.status === 'delivered') {
+            <p-button label="Regenerate delivery note" size="small" severity="secondary" [text]="true" (onClick)="regenerate('deliveryNote')" [disabled]="busy()" />
+            @if (latest('deliveryNote')?.status === 'generated') { <p-button label="Email delivery note…" size="small" icon="pi pi-send" [outlined]="true" (onClick)="openSend()" /> }
+          }
+        </div>
+      </div>
+    }
+
+    @if (d.discrepancies.length > 0) {
+      <div class="panel">
+        <h2>Reported problems</h2>
+        <ul class="plain">
+          @for (x of d.discrepancies; track x.id) {
+            <li><strong>{{ x.type }}</strong> @if (x.sku) { · {{ x.sku }} } @if (x.quantity) { · {{ qty(x.quantity) }} } @if (x.note) { · {{ x.note }} }
+              <span class="muted"> — {{ x.userName }}, {{ x.at | date: 'dd.MM.yyyy HH:mm' }}</span></li>
+          }
+        </ul>
+      </div>
+    }
+
+    <div class="panel">
+      <h2>History</h2>
+      <ol class="timeline">
+        @for (h of d.history; track $index) {
+          <li>
+            <span class="dot" aria-hidden="true"></span>
+            <span><strong>{{ statusInfo(h.to).label }}</strong> · {{ h.at | date: 'dd.MM.yyyy HH:mm' }}@if (h.userName) { · {{ h.userName }} }</span>
+            @if (h.note) { <span class="muted">{{ h.note }}</span> }
+          </li>
+        }
+      </ol>
+    </div>
+  }
+</section>
+
+<!-- Approve -->
+<p-dialog [visible]="approveDialog()" (visibleChange)="approveDialog.set($event)" header="Approve dispatch" [modal]="true" [style]="{ width: 'min(34rem, 95vw)' }">
+  <p>Approving reserves stock for every line (earliest expiry first). If any line is short, nothing is reserved.</p>
+  @if (shortages().length > 0) {
+    <div class="notice danger">
+      <strong>Not enough available stock:</strong>
+      <ul>@for (s of shortages(); track s.lineId) { <li>{{ s.sku }}: needs {{ qty(s.requested) }}, {{ qty(s.available) }} available</li> }</ul>
+      Receive more stock, move stock from RECEIVING to a pickable bin, or return the dispatch to draft to change it.
+    </div>
+  }
+  <div class="field"><label for="approveNote">Note (optional)</label><input pInputText id="approveNote" [(ngModel)]="approveNote" /></div>
+  <ng-template #footer>
+    <p-button label="Back" severity="secondary" [text]="true" (onClick)="approveDialog.set(false)" />
+    <p-button label="Approve and reserve" icon="pi pi-check" (onClick)="approve()" [loading]="busy()" />
+  </ng-template>
+</p-dialog>
+
+<!-- Return / cancel -->
+<p-dialog [visible]="!!reasonDialog()" (visibleChange)="!$event && reasonDialog.set(null)" [header]="reasonDialog() === 'cancel' ? 'Cancel dispatch' : 'Return to draft'" [modal]="true" [style]="{ width: 'min(30rem, 95vw)' }">
+  @if (reasonDialog() === 'cancel') { <p>Cancelling releases any reserved stock. Picked goods stay on their bins.</p> }
+  <div class="field"><label for="reason">Reason</label><input pInputText id="reason" [(ngModel)]="reasonText" /></div>
+  <ng-template #footer>
+    <p-button label="Back" severity="secondary" [text]="true" (onClick)="reasonDialog.set(null)" />
+    <p-button [label]="reasonDialog() === 'cancel' ? 'Cancel dispatch' : 'Return to draft'" [severity]="reasonDialog() === 'cancel' ? 'danger' : 'primary'"
+      (onClick)="confirmReason()" [disabled]="!reasonText.trim()" [loading]="busy()" />
+  </ng-template>
+</p-dialog>
+
+<!-- Ship -->
+<p-dialog [visible]="shipDialog()" (visibleChange)="shipDialog.set($event)" header="Confirm shipment" [modal]="true" [style]="{ width: 'min(34rem, 95vw)' }">
+  <p>The picked quantities leave stock now. This can only be done once.</p>
+  <div class="form-grid">
+    <div class="field"><label for="carrier">Carrier</label><input pInputText id="carrier" [(ngModel)]="carrier" placeholder="e.g. Own van, DHL" /></div>
+    <div class="field"><label for="tracking">Tracking number</label><input pInputText id="tracking" [(ngModel)]="trackingNumber" /></div>
+  </div>
+  @if (isShort()) {
+    <div class="notice warn short-choice">
+      <p><strong>Some lines are short.</strong> What happens to the rest?</p>
+      <div class="field-inline"><p-radiobutton inputId="closeShort" name="short" value="closeShort" [(ngModel)]="shortDecision" /><label for="closeShort">Close short — release the rest</label></div>
+      <div class="field-inline"><p-radiobutton inputId="backorder" name="short" value="backorder" [(ngModel)]="shortDecision" /><label for="backorder">Backorder — keep the rest reserved on a new dispatch</label></div>
+    </div>
+  }
+  <ng-template #footer>
+    <p-button label="Back" severity="secondary" [text]="true" (onClick)="shipDialog.set(false)" />
+    <p-button label="Ship" icon="pi pi-truck" (onClick)="ship()" [disabled]="isShort() && !shortDecision" [loading]="busy()" />
+  </ng-template>
+</p-dialog>
+
+<!-- Deliver -->
+<p-dialog [visible]="deliverDialog()" (visibleChange)="deliverDialog.set($event)" header="Record delivery" [modal]="true" [style]="{ width: 'min(40rem, 98vw)' }" [maximizable]="true">
+  <div class="form-grid">
+    <div class="field"><label for="receiver">Received by</label><input pInputText id="receiver" [(ngModel)]="receiverName" autocomplete="off" /></div>
+    <div class="field"><label for="deliveredAt">Delivered at</label><p-datepicker inputId="deliveredAt" [(ngModel)]="deliveredAt" [showTime]="true" hourFormat="24" dateFormat="dd.mm.yy" [maxDate]="deliveredAtMax" appendTo="body" /></div>
+  </div>
+  <div class="field">
+    <label for="photos">Photos of the delivered goods</label>
+    <input id="photos" type="file" accept="image/*" capture="environment" multiple (change)="onPhotos($event)" />
+    @if (photos().length > 0) {
+      <ul class="files">
+        @for (f of photos(); track $index; let i = $index) { <li>{{ f.name }} <p-button icon="pi pi-times" size="small" [text]="true" severity="secondary" ariaLabel="Remove photo" (onClick)="removePhoto(i)" /></li> }
+      </ul>
+    } @else {
+      <span class="hint">At least one photo is required.</span>
+    }
+  </div>
+  <div class="field">
+    <label for="signature">Receiver's signature</label>
+    <wh-signature-pad #pad label="Receiver's signature" (changed)="signed.set($event)" />
+  </div>
+  <div class="field"><label for="podNotes">Notes</label><textarea pTextarea id="podNotes" [(ngModel)]="deliveryNotes" rows="2"></textarea></div>
+  <ng-template #footer>
+    <p-button label="Back" severity="secondary" [text]="true" (onClick)="deliverDialog.set(false)" />
+    <p-button label="Save delivery" icon="pi pi-check" (onClick)="deliver(pad)" [disabled]="!receiverName.trim() || photos().length === 0 || !signed()" [loading]="busy()" />
+  </ng-template>
+</p-dialog>
+
+<!-- Pick a task -->
+<p-dialog [visible]="!!pickTask()" (visibleChange)="!$event && pickTask.set(null)" header="Confirm pick" [modal]="true" [style]="{ width: 'min(28rem, 95vw)' }">
+  @if (pickTask(); as t) {
+    <p><strong>{{ t.sku }}</strong> {{ t.productName }}<br />from bin <strong>{{ t.locationCode }}</strong>@if (t.lotNo) {<span>, lot <strong>{{ t.lotNo }}</strong></span>}</p>
+    <div class="field"><label for="pickQty">Quantity ({{ t.baseUnitCode }})</label>
+      <p-inputnumber inputId="pickQty" [(ngModel)]="pickQty" [min]="0" [max]="t.remaining" [maxFractionDigits]="3" [useGrouping]="false" />
+      <span class="hint">{{ qty(t.remaining) }} still to pick here.</span>
+    </div>
+  }
+  <ng-template #footer>
+    <p-button label="Back" severity="secondary" [text]="true" (onClick)="pickTask.set(null)" />
+    <p-button label="Picked" icon="pi pi-check" (onClick)="confirmPick()" [disabled]="!pickQty" [loading]="busy()" />
+  </ng-template>
+</p-dialog>
+
+<!-- Reallocate -->
+<p-dialog [visible]="!!reallocTask()" (visibleChange)="!$event && reallocTask.set(null)" header="Take from another bin" [modal]="true" [style]="{ width: 'min(34rem, 95vw)' }">
+  @if (reallocTask(); as t) {
+    <p>{{ t.sku }} is allocated to {{ t.locationCode }}{{ t.lotNo ? ", lot " + t.lotNo : "" }}. Choose where to take it from instead.</p>
+    <div class="field"><label for="realloc">Bin and lot</label>
+      <p-select inputId="realloc" [options]="reallocOptions()" optionValue="id" [(ngModel)]="reallocBalanceId" placeholder="Choose" appendTo="body" [emptyMessage]="'No other free stock in pickable bins'">
+        <ng-template #item let-b>{{ balanceLabel(b) }}</ng-template>
+        <ng-template #selectedItem let-b>{{ balanceLabel(b) }}</ng-template>
+      </p-select>
+    </div>
+    <div class="field"><label for="reallocQty">Quantity</label><p-inputnumber inputId="reallocQty" [(ngModel)]="reallocQty" [min]="0" [max]="t.remaining" [maxFractionDigits]="3" [useGrouping]="false" /></div>
+  }
+  <ng-template #footer>
+    <p-button label="Back" severity="secondary" [text]="true" (onClick)="reallocTask.set(null)" />
+    <p-button label="Move allocation" (onClick)="confirmRealloc()" [disabled]="!reallocBalanceId || !reallocQty" [loading]="busy()" />
+  </ng-template>
+</p-dialog>
+
+<!-- Discrepancy -->
+<p-dialog [visible]="discrepancyDialog()" (visibleChange)="discrepancyDialog.set($event)" header="Report a problem" [modal]="true" [style]="{ width: 'min(30rem, 95vw)' }">
+  <p class="muted">This records the problem on the dispatch. It does not change stock; use a stock adjustment for that.</p>
+  <div class="field"><label for="dType">What happened</label><p-select inputId="dType" [options]="discrepancyTypes" optionLabel="label" optionValue="value" [(ngModel)]="discrepancyType" appendTo="body" /></div>
+  <div class="field"><label for="dLine">Line</label>
+    <p-select inputId="dLine" [options]="dispatch()?.lines ?? []" optionValue="id" [(ngModel)]="discrepancyLineId" [showClear]="true" placeholder="Not tied to a line" appendTo="body">
+      <ng-template #item let-l>{{ l.lineNo }}. {{ l.sku }} {{ l.productName }}</ng-template>
+      <ng-template #selectedItem let-l>{{ l.lineNo }}. {{ l.sku }}</ng-template>
+    </p-select>
+  </div>
+  <div class="field"><label for="dQty">Quantity</label><p-inputnumber inputId="dQty" [(ngModel)]="discrepancyQty" [min]="0" [maxFractionDigits]="3" [useGrouping]="false" /></div>
+  <div class="field"><label for="dNote">Note</label><input pInputText id="dNote" [(ngModel)]="discrepancyNote" /></div>
+  <ng-template #footer>
+    <p-button label="Back" severity="secondary" [text]="true" (onClick)="discrepancyDialog.set(false)" />
+    <p-button label="Record" (onClick)="saveDiscrepancy()" [disabled]="discrepancyType === 'other' && !discrepancyNote.trim()" [loading]="busy()" />
+  </ng-template>
+</p-dialog>
+
+<!-- Resend -->
+<p-dialog [visible]="sendDialog()" (visibleChange)="sendDialog.set($event)" header="Email delivery note" [modal]="true" [style]="{ width: 'min(28rem, 95vw)' }">
+  <div class="field"><label for="sendTo">Send to</label><input pInputText id="sendTo" type="email" [(ngModel)]="sendTo" /></div>
+  <ng-template #footer>
+    <p-button label="Back" severity="secondary" [text]="true" (onClick)="sendDialog.set(false)" />
+    <p-button label="Send" icon="pi pi-send" (onClick)="send()" [disabled]="!sendTo.trim()" [loading]="busy()" />
+  </ng-template>
+</p-dialog>

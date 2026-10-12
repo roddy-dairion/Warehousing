@@ -6,6 +6,7 @@ using Inventory.Application.Documents;
 using Inventory.Application.Imports;
 using Inventory.Application.Inventory;
 using Inventory.Application.Products;
+using Inventory.Application.Reporting;
 using Inventory.Application.Warehouses;
 using Microsoft.Extensions.DependencyInjection;
 
@@ -40,6 +41,9 @@ public static class DependencyInjection
         services.AddScoped<DocumentModelBuilder>();
         services.AddScoped<DocumentService>();
         services.AddScoped<TemplateService>();
+        services.AddScoped<DashboardService>();
+        services.AddScoped<ReportService>();
+        services.AddScoped<AuditQueries>();
         return services;
     }
 }

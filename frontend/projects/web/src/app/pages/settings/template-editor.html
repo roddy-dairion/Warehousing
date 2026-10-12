@@ -1,0 +1,60 @@
+<section class="page wide">
+  <header class="page-header">
+    <div>
+      <h1>Document templates</h1>
+      <p>HTML with Liquid placeholders, e.g. <code>{{ '{{' }} customer.name {{ '}}' }}</code> and <code>{{ '{%' }} for line in lines {{ '%}' }}…{{ '{%' }} endfor {{ '%}' }}</code>. Values are escaped automatically. Scripts and external images are not loaded; use the company logo placeholder for images.</p>
+    </div>
+  </header>
+
+  <p-tabs [value]="type()" (valueChange)="selectType($event)">
+    <p-tablist>
+      <p-tab value="deliveryNote">Signed delivery note</p-tab>
+      <p-tab value="packingSlip">Packing slip</p-tab>
+    </p-tablist>
+  </p-tabs>
+
+  @if (loadError(); as m) {
+    <wh-load-error [message]="m" (retry)="load()" />
+  } @else if (!template()) {
+    <p-skeleton height="30rem" />
+  } @else {
+    @let t = template()!;
+    <div class="toolbar">
+      <p-select [options]="versionOptions()" optionLabel="label" optionValue="value" [ngModel]="t.version" (ngModelChange)="selectVersion($event)" ariaLabel="Version" appendTo="body" />
+      @if (!isCurrent()) {
+        <span class="muted">Viewing an old version.</span>
+        <p-button label="Restore this version" severity="secondary" [outlined]="true" (onClick)="restore()" />
+      }
+      <span class="grow"></span>
+      <p-button label="Preview" icon="pi pi-eye" severity="secondary" [outlined]="true" (onClick)="preview()" [loading]="busy()" />
+    </div>
+
+    <div class="editor">
+      <div class="code-pane">
+        <textarea #editor class="code" [(ngModel)]="html" (ngModelChange)="onEdit()" spellcheck="false" aria-label="Template HTML"></textarea>
+        <div class="save-row">
+          <input pInputText [(ngModel)]="comment" placeholder="What changed? (optional)" aria-label="Change comment" />
+          <p-button label="Save as new version" icon="pi pi-save" (onClick)="save()" [disabled]="!dirty() && isCurrent()" [loading]="busy()" />
+        </div>
+        <details class="placeholders">
+          <summary>Placeholders (click to insert)</summary>
+          @for (g of placeholderGroups(); track g.title) {
+            <div class="group">
+              @for (p of g.items; track p) { <button type="button" class="chip" (click)="insert(editor, p)">{{ p }}</button> }
+            </div>
+          }
+        </details>
+      </div>
+      <div class="preview-pane">
+        @if (previewError(); as e) {
+          <div class="preview-error" role="alert"><strong>Preview failed.</strong> {{ e }}</div>
+        } @else if (previewUrl(); as url) {
+          <iframe [src]="url" title="PDF preview"></iframe>
+        } @else {
+          <p-skeleton height="100%" />
+        }
+        <p class="muted small">Preview uses sample data. Saved v{{ t.version }} {{ t.createdAt | date: 'dd.MM.yyyy HH:mm' }}@if (t.createdByName) { by {{ t.createdByName }} }.</p>
+      </div>
+    </div>
+  }
+</section>

@@ -13,4 +13,11 @@ describe('visibleNavigation', () => {
     const nav = visibleNavigation(() => true);
     expect(nav.map((g) => g.label)).toEqual(['Operations', 'Master data', 'Administration']);
   });
+
+  it('shows company and template settings only with settings.manage', () => {
+    const without = visibleNavigation((p) => p !== Permissions.SettingsManage).flatMap((g) => g.items.map((i) => i.route));
+    expect(without).not.toContain('/settings/templates');
+    const withIt = visibleNavigation((p) => p === Permissions.SettingsManage).flatMap((g) => g.items.map((i) => i.route));
+    expect(withIt).toEqual(['/', '/settings/company', '/settings/templates']);
+  });
 });

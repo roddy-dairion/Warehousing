@@ -15,6 +15,10 @@ export class ApiFeedback {
     this.messages.add({ severity: 'success', summary: detail, life: 3000 });
   }
 
+  warn(detail: string): void {
+    this.messages.add({ severity: 'warn', summary: detail, life: 5000 });
+  }
+
   /** Shows the error. Returns the user-facing message. */
   error(error: unknown, form?: FormGroup): string {
     const err = ApiError.from(error);

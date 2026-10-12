@@ -1,0 +1,150 @@
+<section class="page">
+  <a class="back-link" routerLink="/receipts"><i class="pi pi-arrow-left" aria-hidden="true"></i> Goods receipts</a>
+
+  @if (!warehouses.current() && isNew()) {
+    <wh-need-warehouse />
+  } @else if (loading()) {
+    <p-skeleton height="2rem" width="20rem" />
+    <p-skeleton height="16rem" />
+  } @else if (loadError(); as m) {
+    <wh-load-error [message]="m" (retry)="load(id()!)" />
+  } @else {
+    @let r = receipt();
+    <header class="page-header">
+      <div>
+        @if (r) {
+          <h1>{{ r.number }} <wh-doc-status kind="receipt" [status]="r.status" /></h1>
+          <p>
+            Created {{ r.createdAt | date: 'dd.MM.yyyy HH:mm' }} by {{ r.createdByName ?? '—' }}
+            @if (r.postedAt) { · posted {{ r.postedAt | date: 'dd.MM.yyyy HH:mm' }} by {{ r.postedByName }} }
+          </p>
+        } @else {
+          <h1>New goods receipt</h1>
+          <p>Lines without a bin go to the RECEIVING area; move them to shelves afterwards with a bin move.</p>
+        }
+      </div>
+      <div class="page-actions">
+        @if (editable()) {
+          @if (r) { <p-button label="Cancel draft" severity="danger" [outlined]="true" (onClick)="cancelDraft()" [disabled]="busy()" /> }
+          <p-button label="Save draft" severity="secondary" [outlined]="true" icon="pi pi-save" (onClick)="save()" [loading]="busy()" />
+          @if (canPost) { <p-button label="Post" icon="pi pi-check" (onClick)="post()" [disabled]="busy()" /> }
+        }
+        @if (r?.status === 'posted' && canPost) {
+          <p-button label="Reverse" icon="pi pi-undo" severity="danger" [outlined]="true" (onClick)="reverseReason = ''; reverseDialog.set(true)" [disabled]="busy()" />
+        }
+      </div>
+    </header>
+
+    @if (r?.status === 'reversed') {
+      <div class="notice danger">Reversed {{ r!.reversedAt | date: 'dd.MM.yyyy HH:mm' }} by {{ r!.reversedByName }}: {{ r!.reversalReason }}</div>
+    }
+
+    <form class="panel" [formGroup]="form" novalidate>
+      <div class="form-grid">
+        <div class="field">
+          <label for="receiptDate">Receipt date</label>
+          <p-datepicker inputId="receiptDate" formControlName="receiptDate" dateFormat="dd.mm.yy" [showIcon]="true" appendTo="body" />
+          <wh-field-error [control]="form.controls.receiptDate" requiredText="Choose the date." />
+        </div>
+        <div class="field">
+          <label for="supplierName">Supplier</label>
+          <input pInputText id="supplierName" formControlName="supplierName" />
+        </div>
+        <div class="field">
+          <label for="supplierReference">Supplier reference</label>
+          <input pInputText id="supplierReference" formControlName="supplierReference" placeholder="Delivery note or invoice number" />
+        </div>
+        <div class="field span-all">
+          <label for="notes">Notes</label>
+          <textarea pTextarea id="notes" formControlName="notes" rows="2" [autoResize]="true"></textarea>
+        </div>
+      </div>
+    </form>
+
+    <div class="panel">
+      <div class="panel-header">
+        <h2>Lines</h2>
+        @if (editable()) { <p-button label="Add line" icon="pi pi-plus" size="small" [outlined]="true" (onClick)="addLine()" /> }
+      </div>
+
+      @if (editable()) {
+        <div class="lines" [formGroup]="form">
+          <div formArrayName="lines">
+            @for (line of lines.controls; track line; let i = $index) {
+              @let p = product(line);
+              <div class="line" [formGroupName]="i">
+                <span class="line-no">{{ i + 1 }}</span>
+                <div class="field product">
+                  <label [for]="'p' + i">Product</label>
+                  <wh-product-picker [inputId]="'p' + i" formControlName="productId" (productChange)="onProduct(line, $event)" />
+                  <wh-field-error [control]="line.controls.productId" requiredText="Choose a product." />
+                </div>
+                <div class="field qty">
+                  <label [for]="'q' + i">Quantity</label>
+                  <p-inputnumber [inputId]="'q' + i" formControlName="quantity" [min]="0" [maxFractionDigits]="3" [useGrouping]="false" />
+                  <wh-field-error [control]="line.controls.quantity" requiredText="Enter the quantity." />
+                </div>
+                <div class="field unit">
+                  <label [for]="'u' + i">Unit</label>
+                  <p-select [inputId]="'u' + i" formControlName="productUnitId" [options]="unitOptions(line)" optionLabel="label" optionValue="id" appendTo="body" placeholder="—" />
+                </div>
+                <div class="field qty">
+                  <label [for]="'e' + i">Expected</label>
+                  <p-inputnumber [inputId]="'e' + i" formControlName="expectedQuantity" [min]="0" [maxFractionDigits]="3" [useGrouping]="false" />
+                </div>
+                <div class="field bin">
+                  <label [for]="'b' + i">Bin</label>
+                  <p-select [inputId]="'b' + i" formControlName="locationId" [options]="bins()" [optionLabel]="'code'" optionValue="id" [filter]="true" filterBy="code"
+                    placeholder="RECEIVING" [showClear]="true" appendTo="body" />
+                </div>
+                @if (p?.isLotTracked) {
+                  <div class="field lot">
+                    <label [for]="'l' + i">Lot</label>
+                    <input pInputText [id]="'l' + i" formControlName="lotNo" />
+                  </div>
+                  @if (p?.hasExpiry) {
+                    <div class="field date">
+                      <label [for]="'x' + i">Expiry</label>
+                      <p-datepicker [inputId]="'x' + i" formControlName="expiryDate" dateFormat="dd.mm.yy" appendTo="body" />
+                    </div>
+                  }
+                }
+                <p-button class="remove" icon="pi pi-trash" severity="secondary" [text]="true" ariaLabel="Remove line" (onClick)="removeLine(i)" />
+              </div>
+            }
+          </div>
+        </div>
+      } @else if (r) {
+        <p-table [value]="r.lines" [tableStyle]="{ 'min-width': '52rem' }">
+          <ng-template #header>
+            <tr><th>#</th><th>Product</th><th class="num">Entered</th><th class="num">Base qty</th><th class="num">Expected</th><th>Bin</th><th>Lot</th><th>Expiry</th></tr>
+          </ng-template>
+          <ng-template #body let-l>
+            <tr>
+              <td>{{ l.lineNo }}</td>
+              <td><span class="code">{{ l.sku }}</span> {{ l.productName }}</td>
+              <td class="num">{{ qty(l.enteredQuantity) }} {{ l.unitCode }}</td>
+              <td class="num">{{ qty(l.quantity) }} {{ l.baseUnitCode }}</td>
+              <td class="num">{{ qty(l.expectedQuantity) }}</td>
+              <td>{{ l.locationCode }}</td>
+              <td>{{ l.lotNo ?? '—' }}</td>
+              <td>{{ l.expiryDate ? (l.expiryDate | date: 'dd.MM.yyyy') : '—' }}</td>
+            </tr>
+          </ng-template>
+        </p-table>
+      }
+    </div>
+  }
+</section>
+
+<p-dialog [visible]="reverseDialog()" (visibleChange)="reverseDialog.set($event)" header="Reverse receipt" [modal]="true" [style]="{ width: 'min(30rem, 95vw)' }">
+  <p>Reversing removes the received quantities from stock again. It fails if any of the stock has since been reserved, moved or shipped.</p>
+  <div class="field">
+    <label for="reverseReason">Reason</label>
+    <input pInputText id="reverseReason" [(ngModel)]="reverseReason" />
+  </div>
+  <ng-template #footer>
+    <p-button label="Keep" severity="secondary" [text]="true" (onClick)="reverseDialog.set(false)" />
+    <p-button label="Reverse" severity="danger" (onClick)="reverse()" [disabled]="!reverseReason.trim()" [loading]="busy()" />
+  </ng-template>
+</p-dialog>

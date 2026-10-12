@@ -1,0 +1,89 @@
+<section class="page">
+  <a class="back-link" [routerLink]="dispatch() ? ['/dispatches', dispatch()!.id] : '/dispatches'"><i class="pi pi-arrow-left" aria-hidden="true"></i> {{ dispatch()?.number ?? 'Dispatches' }}</a>
+
+  @if (!warehouses.current() && isNew()) {
+    <wh-need-warehouse />
+  } @else if (loading()) {
+    <p-skeleton height="2rem" width="20rem" />
+    <p-skeleton height="16rem" />
+  } @else if (loadError(); as m) {
+    <wh-load-error [message]="m" (retry)="load(id()!)" />
+  } @else {
+    <header class="page-header">
+      <div>
+        <h1>{{ dispatch() ? 'Edit ' + dispatch()!.number : 'New dispatch' }}</h1>
+        <p>A draft does not reserve stock. Submit it for a manager's approval, which reserves the stock.</p>
+      </div>
+      <div class="page-actions">
+        <p-button label="Save draft" severity="secondary" [outlined]="true" icon="pi pi-save" (onClick)="save(false)" [loading]="busy()" />
+        <p-button label="Save and submit" icon="pi pi-send" (onClick)="save(true)" [disabled]="busy()" />
+      </div>
+    </header>
+
+    <form class="panel" [formGroup]="form" novalidate>
+      <div class="form-grid">
+        <div class="field">
+          <label for="customer">Customer</label>
+          <p-autocomplete inputId="customer" [ngModel]="customerOption()" [ngModelOptions]="{ standalone: true }" [suggestions]="customerSuggestions()"
+            (completeMethod)="searchCustomers($event)" (onSelect)="pickCustomer($event)" (onClear)="clearCustomer()" optionLabel="label" [forceSelection]="true"
+            placeholder="Company name or reference" [delay]="250" appendTo="body" [fluid]="true" [showClear]="true" />
+          <wh-field-error [control]="form.controls.customerId" requiredText="Choose a customer." />
+        </div>
+        <div class="field">
+          <label for="address">Delivery address</label>
+          <p-select inputId="address" formControlName="deliveryAddressId" [options]="addresses()" optionLabel="label" optionValue="id" placeholder="Customer's default address" [showClear]="true" appendTo="body" />
+        </div>
+        <div class="field">
+          <label for="requestedDate">Requested dispatch date</label>
+          <p-datepicker inputId="requestedDate" formControlName="requestedDate" dateFormat="dd.mm.yy" [showIcon]="true" appendTo="body" />
+          <wh-field-error [control]="form.controls.requestedDate" requiredText="Choose a date." />
+        </div>
+        <div class="field">
+          <label for="ref">Customer's order reference</label>
+          <input pInputText id="ref" formControlName="customerOrderReference" placeholder="e.g. PO-4567" />
+        </div>
+        <div class="field span-all">
+          <label for="notes">Notes</label>
+          <textarea pTextarea id="notes" formControlName="notes" rows="2" [autoResize]="true" placeholder="Printed on the packing slip and delivery note"></textarea>
+        </div>
+      </div>
+    </form>
+
+    <div class="panel">
+      <div class="panel-header">
+        <h2>Products</h2>
+        <p-button label="Add line" icon="pi pi-plus" size="small" [outlined]="true" (onClick)="addLine()" />
+      </div>
+      <div class="lines" [formGroup]="form">
+        <div formArrayName="lines">
+          @for (line of lines.controls; track line; let i = $index) {
+            @let p = product(line);
+            <div class="line" [formGroupName]="i">
+              <span class="line-no">{{ i + 1 }}</span>
+              <div class="field product">
+                <label [for]="'p' + i">Product</label>
+                <wh-product-picker [inputId]="'p' + i" formControlName="productId" (productChange)="onProduct(line, $event)" />
+                @if (p && available()[p.id] !== undefined) { <span class="hint">{{ qty(available()[p.id]) }} {{ p.baseUnitCode }} available in this warehouse</span> }
+                <wh-field-error [control]="line.controls.productId" requiredText="Choose a product." />
+              </div>
+              <div class="field qty">
+                <label [for]="'q' + i">Quantity</label>
+                <p-inputnumber [inputId]="'q' + i" formControlName="quantity" [min]="0" [maxFractionDigits]="3" [useGrouping]="false" />
+                <wh-field-error [control]="line.controls.quantity" requiredText="Enter the quantity." />
+              </div>
+              <div class="field unit">
+                <label [for]="'u' + i">Unit</label>
+                <p-select [inputId]="'u' + i" formControlName="productUnitId" [options]="unitOptions(line)" optionLabel="label" optionValue="id" appendTo="body" placeholder="—" />
+              </div>
+              <div class="field wide">
+                <label [for]="'n' + i">Line note</label>
+                <input pInputText [id]="'n' + i" formControlName="notes" />
+              </div>
+              <p-button class="remove" icon="pi pi-trash" severity="secondary" [text]="true" ariaLabel="Remove line" (onClick)="removeLine(i)" />
+            </div>
+          }
+        </div>
+      </div>
+    </div>
+  }
+</section>

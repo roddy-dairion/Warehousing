@@ -1,8 +1,6 @@
 import { Routes } from '@angular/router';
 import { authGuard, guestGuard, permissionGuard, Permissions } from '@wh/shared';
 
-const placeholder = () => import('./pages/placeholder/placeholder').then((m) => m.PlaceholderPage);
-
 export const routes: Routes = [
   {
     path: 'login',
@@ -16,11 +14,34 @@ export const routes: Routes = [
     loadComponent: () => import('./layout/shell').then((m) => m.Shell),
     children: [
       { path: '', title: 'Dashboard · HelloCherie Warehousing', loadComponent: () => import('./pages/dashboard/dashboard').then((m) => m.DashboardPage) },
-      { path: 'dispatches', title: 'Dispatches', canMatch: [permissionGuard(Permissions.DispatchesRead)], loadComponent: placeholder, data: { title: 'Dispatches', phase: 6 } },
-      { path: 'receipts', title: 'Goods receipts', canMatch: [permissionGuard(Permissions.InventoryReceive)], loadComponent: placeholder, data: { title: 'Goods receipts', phase: 6 } },
-      { path: 'inventory', title: 'Stock', canMatch: [permissionGuard(Permissions.InventoryRead)], loadComponent: placeholder, data: { title: 'Stock', phase: 6 } },
-      { path: 'adjustments', title: 'Adjustments', canMatch: [permissionGuard(Permissions.InventoryAdjust, Permissions.InventoryAdjustApprove)], loadComponent: placeholder, data: { title: 'Stock adjustments', phase: 6 } },
-      { path: 'transfers', title: 'Bin moves', canMatch: [permissionGuard(Permissions.InventoryTransfer)], loadComponent: placeholder, data: { title: 'Bin moves', phase: 6 } },
+      {
+        path: 'dispatches',
+        canMatch: [permissionGuard(Permissions.DispatchesRead)],
+        children: [
+          { path: '', title: 'Dispatches', loadComponent: () => import('./pages/dispatches/dispatch-list').then((m) => m.DispatchList) },
+          { path: 'new', title: 'New dispatch', canMatch: [permissionGuard(Permissions.DispatchesCreate)], loadComponent: () => import('./pages/dispatches/dispatch-edit').then((m) => m.DispatchEdit) },
+          { path: ':id/edit', title: 'Edit dispatch', canMatch: [permissionGuard(Permissions.DispatchesCreate)], loadComponent: () => import('./pages/dispatches/dispatch-edit').then((m) => m.DispatchEdit) },
+          { path: ':id', title: 'Dispatch', loadComponent: () => import('./pages/dispatches/dispatch-detail').then((m) => m.DispatchDetail) },
+        ],
+      },
+      {
+        path: 'receipts',
+        canMatch: [permissionGuard(Permissions.InventoryReceive, Permissions.InventoryReceivePost)],
+        children: [
+          { path: '', title: 'Goods receipts', loadComponent: () => import('./pages/receipts/receipt-list').then((m) => m.ReceiptList) },
+          { path: ':id', title: 'Goods receipt', loadComponent: () => import('./pages/receipts/receipt-edit').then((m) => m.ReceiptEdit) },
+        ],
+      },
+      { path: 'inventory', title: 'Stock', canMatch: [permissionGuard(Permissions.InventoryRead)], loadComponent: () => import('./pages/inventory/stock-page').then((m) => m.StockPage) },
+      {
+        path: 'adjustments',
+        canMatch: [permissionGuard(Permissions.InventoryAdjust, Permissions.InventoryAdjustApprove)],
+        children: [
+          { path: '', title: 'Adjustments', loadComponent: () => import('./pages/adjustments/adjustment-list').then((m) => m.AdjustmentList) },
+          { path: ':id', title: 'Adjustment', loadComponent: () => import('./pages/adjustments/adjustment-edit').then((m) => m.AdjustmentEdit) },
+        ],
+      },
+      { path: 'transfers', title: 'Bin moves', canMatch: [permissionGuard(Permissions.InventoryTransfer)], loadComponent: () => import('./pages/transfers/transfer-list').then((m) => m.TransferList) },
       {
         path: 'products',
         canMatch: [permissionGuard(Permissions.ProductsRead)],
@@ -55,8 +76,17 @@ export const routes: Routes = [
         canMatch: [permissionGuard(Permissions.ProductsManage, Permissions.CustomersManage, Permissions.WarehousesManage)],
         loadComponent: () => import('./pages/import/import-page').then((m) => m.ImportPage),
       },
-      { path: 'reports', title: 'Reports', canMatch: [permissionGuard(Permissions.ReportsRead)], loadComponent: placeholder, data: { title: 'Reports', phase: 6 } },
-      { path: 'audit', title: 'Audit log', canMatch: [permissionGuard(Permissions.AuditRead)], loadComponent: placeholder, data: { title: 'Audit log', phase: 6 } },
+      { path: 'reports', title: 'Reports', canMatch: [permissionGuard(Permissions.ReportsRead)], loadComponent: () => import('./pages/reports/reports-page').then((m) => m.ReportsPage) },
+      {
+        path: 'settings',
+        canMatch: [permissionGuard(Permissions.SettingsManage)],
+        children: [
+          { path: '', pathMatch: 'full', redirectTo: 'company' },
+          { path: 'company', title: 'Company and email', loadComponent: () => import('./pages/settings/company-settings').then((m) => m.CompanySettings) },
+          { path: 'templates', title: 'Document templates', loadComponent: () => import('./pages/settings/template-editor').then((m) => m.TemplateEditor) },
+        ],
+      },
+      { path: 'audit', title: 'Audit log', canMatch: [permissionGuard(Permissions.AuditRead)], loadComponent: () => import('./pages/audit/audit-page').then((m) => m.AuditPage) },
       { path: 'forbidden', title: 'No access', loadComponent: () => import('./pages/forbidden/forbidden').then((m) => m.ForbiddenPage) },
     ],
   },

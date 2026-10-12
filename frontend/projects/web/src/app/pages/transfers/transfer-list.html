@@ -1,0 +1,89 @@
+<section class="page">
+  <header class="page-header">
+    <div>
+      <h1>Bin moves</h1>
+      <p>Move stock between bins in this warehouse, for example from RECEIVING to a shelf. Reserved stock cannot be moved.</p>
+    </div>
+    @if (warehouses.current()) {
+      <div class="page-actions"><p-button label="New move" icon="pi pi-arrow-right-arrow-left" (onClick)="newMove()" /></div>
+    }
+  </header>
+
+  @if (!warehouses.current()) {
+    <wh-need-warehouse />
+  } @else {
+    <div class="toolbar">
+      <p-iconfield class="grow">
+        <p-inputicon styleClass="pi pi-search" />
+        <input pInputText type="search" placeholder="Number or notes" [(ngModel)]="search" (ngModelChange)="onSearch()" aria-label="Search moves" />
+      </p-iconfield>
+    </div>
+    @if (error(); as m) { <wh-load-error [message]="m" (retry)="load()" /> }
+    <p-table #table [value]="rows()" [lazy]="true" (onLazyLoad)="onLazy($event)" [loading]="loading()" [paginator]="true" [rows]="25" [totalRecords]="total()"
+      dataKey="id" [rowHover]="true" [tableStyle]="{ 'min-width': '40rem' }" [showCurrentPageReport]="true" currentPageReportTemplate="{first}–{last} of {totalRecords}">
+      <ng-template #header><tr><th>Number</th><th>Date</th><th class="num">Lines</th><th>Notes</th></tr></ng-template>
+      <ng-template #body let-t>
+        <tr class="clickable-row" (click)="open(t)" (keydown.enter)="open(t)" tabindex="0">
+          <td class="code">{{ t.number }}</td>
+          <td>{{ t.postedAt | date: 'dd.MM.yyyy HH:mm' }}</td>
+          <td class="num">{{ t.lineCount }}</td>
+          <td>{{ t.notes ?? '' }}</td>
+        </tr>
+      </ng-template>
+      <ng-template #emptymessage><tr><td colspan="4" class="empty">No moves yet.</td></tr></ng-template>
+    </p-table>
+  }
+</section>
+
+<p-dialog [visible]="dialog()" (visibleChange)="dialog.set($event)" header="New bin move" [modal]="true" [style]="{ width: 'min(60rem, 98vw)' }" [maximizable]="true">
+  <div class="lines">
+    @for (l of moveLines(); track $index; let i = $index) {
+      <div class="line">
+        <span class="line-no">{{ i + 1 }}</span>
+        <div class="field product">
+          <label [for]="'mp' + i">Product</label>
+          <wh-product-picker [inputId]="'mp' + i" [activeOnly]="false" [ngModel]="l.productId" (productChange)="onProduct(i, $event)" />
+        </div>
+        <div class="field wide">
+          <label [for]="'ms' + i">From (bin, lot)</label>
+          <p-select [inputId]="'ms' + i" [options]="l.sources" optionValue="id" [(ngModel)]="l.sourceId" (onChange)="touch()" appendTo="body"
+            [placeholder]="l.productId && l.sources.length === 0 ? 'No free stock' : 'Choose'">
+            <ng-template #item let-b>{{ sourceLabel(b) }}</ng-template>
+            <ng-template #selectedItem let-b>{{ sourceLabel(b) }}</ng-template>
+          </p-select>
+        </div>
+        <div class="field bin">
+          <label [for]="'mt' + i">To bin</label>
+          <p-select [inputId]="'mt' + i" [options]="bins()" optionLabel="code" optionValue="id" [(ngModel)]="l.toLocationId" (onChange)="touch()" [filter]="true" filterBy="code" placeholder="Choose" appendTo="body" />
+          @if (l.toLocationId && source(l)?.locationId === l.toLocationId) { <small class="field-error">Choose a different bin.</small> }
+        </div>
+        <div class="field qty">
+          <label [for]="'mq' + i">Quantity</label>
+          <p-inputnumber [inputId]="'mq' + i" [(ngModel)]="l.quantity" (onInput)="touch()" [min]="0" [max]="source(l)?.available ?? null" [maxFractionDigits]="3" [useGrouping]="false" />
+        </div>
+        <p-button class="remove" icon="pi pi-trash" severity="secondary" [text]="true" ariaLabel="Remove line" (onClick)="removeLine(i)" />
+      </div>
+    }
+  </div>
+  <p-button label="Add line" icon="pi pi-plus" size="small" [text]="true" (onClick)="addLine()" />
+  <div class="field" style="margin-top: 1rem">
+    <label for="moveNotes">Notes</label>
+    <input pInputText id="moveNotes" [(ngModel)]="notes" placeholder="e.g. Put-away of GR-MAIN-2026-000012" />
+  </div>
+  <ng-template #footer>
+    <p-button label="Cancel" severity="secondary" [text]="true" (onClick)="dialog.set(false)" />
+    <p-button label="Move stock" icon="pi pi-check" (onClick)="save()" [disabled]="!valid()" [loading]="saving()" />
+  </ng-template>
+</p-dialog>
+
+<p-drawer [visible]="!!detail()" (visibleChange)="!$event && detail.set(null)" position="right" [style]="{ width: 'min(40rem, 100vw)' }" [header]="detail()?.number ?? ''">
+  @if (detail(); as t) {
+    <p class="muted">{{ t.postedAt | date: 'dd.MM.yyyy HH:mm' }} by {{ t.postedByName ?? '—' }}@if (t.notes) { · {{ t.notes }} }</p>
+    <p-table [value]="t.lines">
+      <ng-template #header><tr><th>Product</th><th>Lot</th><th>From</th><th>To</th><th class="num">Qty</th></tr></ng-template>
+      <ng-template #body let-l>
+        <tr><td><span class="code">{{ l.sku }}</span> {{ l.productName }}</td><td>{{ l.lotNo ?? '—' }}</td><td>{{ l.fromLocationCode }}</td><td>{{ l.toLocationCode }}</td><td class="num">{{ qty(l.quantity) }} {{ l.baseUnitCode }}</td></tr>
+      </ng-template>
+    </p-table>
+  }
+</p-drawer>
