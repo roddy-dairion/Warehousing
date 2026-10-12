@@ -2,6 +2,7 @@ using FluentValidation;
 using Inventory.Application.Common;
 using Inventory.Application.Customers;
 using Inventory.Application.Imports;
+using Inventory.Application.Inventory;
 using Inventory.Application.Products;
 using Inventory.Application.Warehouses;
 using Microsoft.Extensions.DependencyInjection;
@@ -20,6 +21,16 @@ public static class DependencyInjection
         services.AddScoped<CatalogService>();
         services.AddScoped<ProductService>();
         services.AddScoped<ImportService>();
+
+        services.AddScoped<StockRules>();
+        services.AddScoped<StockLedger>();
+        services.AddScoped<ReservationService>();
+        services.AddScoped<ReceiptService>();
+        services.AddScoped<AdjustmentService>();
+        services.AddScoped<TransferService>();
+        services.AddScoped<LotService>();
+        services.AddScoped<InventoryQueries>();
+        services.AddScoped<ReconciliationService>();
         return services;
     }
 }

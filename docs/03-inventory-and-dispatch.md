@@ -63,7 +63,7 @@ COMMIT
 
 ### A4. Idempotency
 
-* Every POST command (`approve`, `ship`, `post`, `pick`…) accepts an `Idempotency-Key` header. The first response is stored in `IdempotencyRecord`. A retry with the same key and body returns the stored response without re-executing. The same key with a different body returns 422.
+* Every POST command (`approve`, `ship`, `post`, `pick`…) accepts an `Idempotency-Key` header. The first successful response is stored in `IdempotencyRecord`, per user and key. A retry with the same key and body returns the stored response without re-executing. The same key with a different body returns 422, and a retry while the first is still running returns 409. Failed requests are not stored. (Implemented in Phase 4; see doc 07.)
 * Natural idempotency adds a second layer: shipping a dispatch that is already `Dispatched` returns 409, and the ledger's unique constraint makes double-posting impossible even if both layers were bypassed.
 * Pick scans carry a client `scanId` with a unique constraint.
 

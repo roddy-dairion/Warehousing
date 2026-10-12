@@ -97,9 +97,15 @@ public sealed class ProductService(IApplicationDbContext db, BarcodeRegistry bar
         var product = await LoadAsync(id, cancellationToken);
         db.ExpectVersion(product, r.Version);
         await EnsureCategoryUsableAsync(r.CategoryId, cancellationToken);
+        var stockRulesChanged = r.BaseUnitId != product.BaseUnitId || r.IsLotTracked != product.IsLotTracked || r.HasExpiry != product.HasExpiry;
+        if (stockRulesChanged && await db.InventoryMovements.AnyAsync(m => m.ProductId == id, cancellationToken))
+        {
+            // Stock is recorded in the base unit and keyed by lot: changing either would make existing stock and history wrong.
+            throw new DomainRuleException("product.has_stock_history",
+                "The base unit, lot tracking and expiry tracking cannot be changed once the product has stock movements. Create a new product instead.", isConflict: true);
+        }
         if (r.BaseUnitId != product.BaseUnitId)
         {
-            // Phase 4: blocked once the product has stock movements.
             await EnsureUnitUsableAsync(r.BaseUnitId, cancellationToken);
             product.ChangeBaseUnit(r.BaseUnitId);
         }

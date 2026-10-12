@@ -68,7 +68,10 @@ public sealed class LocationService(IApplicationDbContext db, IWarehouseAccess a
     {
         var location = await LoadAsync(id, cancellationToken);
         if (location.IsActive == active) return;
-        // Phase 4: deactivation will also require the bin to hold no stock.
+        if (!active && await db.InventoryBalances.AnyAsync(b => b.LocationId == id && b.OnHand > 0, cancellationToken))
+        {
+            throw new DomainRuleException("location.has_stock", $"Bin {location.Code} still holds stock. Move it to another bin first.", isConflict: true);
+        }
         if (active) location.Activate(); else location.Deactivate();
         audit.Add(active ? "location.activated" : "location.deactivated", "location", id.ToString(), location.WarehouseId);
         await db.SaveChangesAsync(cancellationToken);

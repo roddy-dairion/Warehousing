@@ -1,5 +1,6 @@
 using Inventory.Application.Auth;
 using Inventory.Application.Common;
+using Inventory.Application.Inventory;
 using Inventory.Application.Roles;
 using Inventory.Application.Users;
 using Inventory.Infrastructure.Auth;
@@ -60,6 +61,13 @@ public static class DependencyInjection
         services.AddOptions<StorageOptions>().Bind(configuration.GetSection(StorageOptions.Section));
         services.AddSingleton<IFileStorage, LocalFileStorage>();
         services.AddScoped<DatabaseSeeder>();
+        services.AddScoped<IUserDirectory, UserDirectory>();
+        services.AddScoped<IStockStore, StockStore>();
+        services.AddOptions<InventoryOptions>().Bind(configuration.GetSection(InventoryOptions.Section));
+        if (configuration.GetSection(InventoryOptions.Section).Get<InventoryOptions>()?.MaintenanceEnabled ?? true)
+        {
+            services.AddHostedService<MaintenanceService>();
+        }
         return services;
     }
 }

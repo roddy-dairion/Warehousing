@@ -2,6 +2,7 @@ using Inventory.Application.Common;
 using Inventory.Domain.Auditing;
 using Inventory.Domain.Customers;
 using Inventory.Domain.Files;
+using Inventory.Domain.Inventory;
 using Inventory.Domain.Products;
 using Inventory.Domain.Warehouses;
 using Inventory.Infrastructure.Identity;
@@ -27,6 +28,15 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options)
     public DbSet<RolePermission> RolePermissions => Set<RolePermission>();
     public DbSet<UserWarehouseAccess> UserWarehouseAccess => Set<UserWarehouseAccess>();
     public DbSet<RefreshToken> RefreshTokens => Set<RefreshToken>();
+    public DbSet<ProductLot> ProductLots => Set<ProductLot>();
+    public DbSet<InventoryBalance> InventoryBalances => Set<InventoryBalance>();
+    public DbSet<InventoryMovement> InventoryMovements => Set<InventoryMovement>();
+    public DbSet<StockReservation> StockReservations => Set<StockReservation>();
+    public DbSet<GoodsReceipt> GoodsReceipts => Set<GoodsReceipt>();
+    public DbSet<StockAdjustment> StockAdjustments => Set<StockAdjustment>();
+    public DbSet<StockTransfer> StockTransfers => Set<StockTransfer>();
+    public DbSet<DocumentSequence> DocumentSequences => Set<DocumentSequence>();
+    public DbSet<IdempotencyRecord> IdempotencyRecords => Set<IdempotencyRecord>();
 
     protected override void OnModelCreating(ModelBuilder builder)
     {

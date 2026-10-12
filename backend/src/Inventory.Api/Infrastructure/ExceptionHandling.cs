@@ -1,5 +1,6 @@
 using FluentValidation;
 using Inventory.Application.Common;
+using Inventory.Application.Inventory;
 using Inventory.Domain.Common;
 using Microsoft.AspNetCore.Diagnostics;
 using Microsoft.AspNetCore.Mvc;
@@ -32,6 +33,7 @@ internal sealed class ApiExceptionHandler(IProblemDetailsService problemDetails,
         problem.Title = title;
         problem.Detail = detail;
         if (code is not null) problem.Extensions["code"] = code;
+        if (exception is StockShortageException shortage) problem.Extensions["shortages"] = shortage.Shortages;
 
         return await problemDetails.TryWriteAsync(new ProblemDetailsContext
         {

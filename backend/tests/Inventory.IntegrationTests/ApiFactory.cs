@@ -45,6 +45,7 @@ public class ApiFactory : WebApplicationFactory<Program>, IAsyncLifetime
         builder.UseSetting("RateLimiting:LoginPerMinute", "1000");
         builder.UseSetting("RateLimiting:RefreshPerMinute", "1000");
         builder.UseSetting("Serilog:MinimumLevel:Default", "Warning");
+        builder.UseSetting("Inventory:MaintenanceEnabled", "false");
         foreach (var (key, value) in ExtraSettings) builder.UseSetting(key, value);
     }
 

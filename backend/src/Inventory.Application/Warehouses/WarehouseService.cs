@@ -79,6 +79,10 @@ public sealed class WarehouseService(IApplicationDbContext db, IWarehouseAccess 
         {
             throw new DomainRuleException("warehouse.last_active", "At least one warehouse must stay active.", isConflict: true);
         }
+        if (!active && await db.InventoryBalances.AnyAsync(b => b.WarehouseId == id && b.OnHand > 0, cancellationToken))
+        {
+            throw new DomainRuleException("warehouse.has_stock", "This warehouse still holds stock and cannot be deactivated.", isConflict: true);
+        }
         if (active) warehouse.Activate(); else warehouse.Deactivate();
         audit.Add(active ? "warehouse.activated" : "warehouse.deactivated", "warehouse", id.ToString(), id);
         await db.SaveChangesAsync(cancellationToken);
