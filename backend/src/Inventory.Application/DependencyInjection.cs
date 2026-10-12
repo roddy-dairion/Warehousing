@@ -1,6 +1,8 @@
 using FluentValidation;
 using Inventory.Application.Common;
 using Inventory.Application.Customers;
+using Inventory.Application.Dispatches;
+using Inventory.Application.Documents;
 using Inventory.Application.Imports;
 using Inventory.Application.Inventory;
 using Inventory.Application.Products;
@@ -31,6 +33,13 @@ public static class DependencyInjection
         services.AddScoped<LotService>();
         services.AddScoped<InventoryQueries>();
         services.AddScoped<ReconciliationService>();
+
+        services.AddScoped<DispatchService>();
+        services.AddScoped<PickingService>();
+        services.AddScoped<DeliveryService>();
+        services.AddScoped<DocumentModelBuilder>();
+        services.AddScoped<DocumentService>();
+        services.AddScoped<TemplateService>();
         return services;
     }
 }

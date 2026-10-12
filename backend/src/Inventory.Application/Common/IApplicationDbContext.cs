@@ -1,6 +1,8 @@
 using Inventory.Domain.Auditing;
 using Inventory.Domain.Customers;
 using Inventory.Domain.Files;
+using Inventory.Domain.Dispatches;
+using Inventory.Domain.Documents;
 using Inventory.Domain.Inventory;
 using Inventory.Domain.Products;
 using Inventory.Domain.Warehouses;
@@ -29,10 +31,22 @@ public interface IApplicationDbContext
     DbSet<GoodsReceipt> GoodsReceipts { get; }
     DbSet<StockAdjustment> StockAdjustments { get; }
     DbSet<StockTransfer> StockTransfers { get; }
+    public DbSet<Dispatch> Dispatches { get; }
+    public DbSet<PickConfirmation> PickConfirmations { get; }
+    public DbSet<DispatchDiscrepancy> DispatchDiscrepancies { get; }
+    public DbSet<ProofOfDelivery> ProofsOfDelivery { get; }
+    public DbSet<DocumentTemplate> DocumentTemplates { get; }
+    public DbSet<DispatchDocument> DispatchDocuments { get; }
+    public DbSet<CompanyProfile> CompanyProfiles { get; }
+    public DbSet<EmailMessage> EmailMessages { get; }
 
     DatabaseFacade Database { get; }
 
+    ChangeTracker ChangeTracker { get; }
+
     EntityEntry<TEntity> Entry<TEntity>(TEntity entity) where TEntity : class;
+
+    DbSet<TEntity> Set<TEntity>() where TEntity : class;
 
     Task<int> SaveChangesAsync(CancellationToken cancellationToken);
 }

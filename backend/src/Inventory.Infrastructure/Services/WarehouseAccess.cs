@@ -50,6 +50,18 @@ internal sealed class WarehouseAccess(AppDbContext db, ICurrentUser currentUser)
         }
     }
 
+    public async Task<bool> UserCanPickAsync(Guid userId, Guid warehouseId, CancellationToken cancellationToken)
+    {
+        var u = await db.Users.AsNoTracking().Where(x => x.Id == userId && x.IsActive).Select(x => new { x.AllWarehouses }).SingleOrDefaultAsync(cancellationToken);
+        if (u is null) return false;
+        var hasPermission = await (from ur in db.UserRoles
+                                   join rp in db.RolePermissions on ur.RoleId equals rp.RoleId
+                                   where ur.UserId == userId && rp.PermissionCode == Domain.Security.Permissions.DispatchesPick
+                                   select rp).AnyAsync(cancellationToken);
+        if (!hasPermission) return false;
+        return u.AllWarehouses || await db.UserWarehouseAccess.AnyAsync(a => a.UserId == userId && a.WarehouseId == warehouseId, cancellationToken);
+    }
+
     /// <summary>null = no active user; otherwise the user's AllWarehouses flag.</summary>
     private async Task<bool?> LoadAllFlagAsync(CancellationToken cancellationToken)
     {

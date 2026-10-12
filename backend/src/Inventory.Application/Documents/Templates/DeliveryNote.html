@@ -1,0 +1,101 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>{{ document.title }} {{ dispatch.number }}</title>
+<style>
+  @page { size: A4; margin: 16mm 14mm 18mm 14mm; }
+  * { box-sizing: border-box; }
+  body { font-family: "Segoe UI", Arial, Helvetica, sans-serif; font-size: 10pt; color: #1f2937; margin: 0; }
+  header { display: flex; justify-content: space-between; align-items: flex-start; border-bottom: 2px solid #111827; padding-bottom: 10px; }
+  .logo { max-height: 56px; max-width: 220px; }
+  .company { font-size: 9pt; color: #4b5563; text-align: right; line-height: 1.4; }
+  .company strong { color: #111827; font-size: 11pt; }
+  h1 { font-size: 18pt; margin: 18px 0 2px; letter-spacing: .5px; }
+  .number { font-size: 11pt; color: #4b5563; margin-bottom: 14px; }
+  .grid { display: flex; gap: 16px; margin-bottom: 16px; }
+  .box { flex: 1; border: 1px solid #d1d5db; border-radius: 4px; padding: 8px 10px; line-height: 1.45; }
+  .box h2 { font-size: 8pt; text-transform: uppercase; color: #6b7280; margin: 0 0 4px; letter-spacing: .6px; }
+  table.facts td { padding: 1px 8px 1px 0; vertical-align: top; }
+  table.facts td:first-child { color: #6b7280; white-space: nowrap; }
+  table.lines { width: 100%; border-collapse: collapse; }
+  table.lines th { text-align: left; font-size: 8pt; text-transform: uppercase; color: #6b7280; border-bottom: 1px solid #111827; padding: 6px 4px; }
+  table.lines td { border-bottom: 1px solid #e5e7eb; padding: 6px 4px; vertical-align: top; }
+  table.lines tr { page-break-inside: avoid; }
+  .num { text-align: right; white-space: nowrap; }
+  .muted { color: #6b7280; font-size: 8.5pt; }
+  .received { margin-top: 22px; border: 1px solid #111827; border-radius: 4px; padding: 10px 12px; display: flex; gap: 24px; align-items: flex-end; page-break-inside: avoid; }
+  .received .who { flex: 1; line-height: 1.6; }
+  .received h2 { font-size: 8pt; text-transform: uppercase; color: #6b7280; margin: 0 0 4px; letter-spacing: .6px; }
+  .signature { width: 240px; text-align: center; }
+  .signature img { max-width: 240px; max-height: 90px; display: block; margin: 0 auto 4px; }
+  .signature div { border-top: 1px solid #9ca3af; font-size: 8pt; color: #6b7280; padding-top: 3px; }
+  footer { margin-top: 24px; font-size: 8pt; color: #6b7280; border-top: 1px solid #e5e7eb; padding-top: 6px; }
+</style>
+</head>
+<body>
+<header>
+  <div>{% if company.logo %}<img class="logo" src="{{ company.logo }}" alt="">{% else %}<strong style="font-size:16pt">{{ company.name }}</strong>{% endif %}</div>
+  <div class="company">
+    <strong>{{ company.name }}</strong><br>
+    {% for l in company.address_lines %}{{ l }}<br>{% endfor %}
+    {% if company.phone %}{{ company.phone }}<br>{% endif %}
+    {% if company.email %}{{ company.email }}{% endif %}
+  </div>
+</header>
+
+<h1>{{ document.title }}</h1>
+<div class="number">{{ dispatch.number }}{% if dispatch.backorder_of %} · backorder of {{ dispatch.backorder_of }}{% endif %}</div>
+
+<div class="grid">
+  <div class="box">
+    <h2>Delivered to</h2>
+    <strong>{{ customer.name }}</strong><br>
+    {% for l in ship_to.address_lines %}{{ l }}<br>{% endfor %}
+    {% if ship_to.contact %}{{ ship_to.contact }}{% endif %}{% if ship_to.phone %} · {{ ship_to.phone }}{% endif %}
+  </div>
+  <div class="box">
+    <h2>Details</h2>
+    <table class="facts">
+      <tr><td>Customer</td><td>{{ customer.reference }}</td></tr>
+      {% if dispatch.customer_reference %}<tr><td>Your reference</td><td>{{ dispatch.customer_reference }}</td></tr>{% endif %}
+      <tr><td>Shipped</td><td>{{ dispatch.shipped_at }}</td></tr>
+      <tr><td>Delivered</td><td>{{ delivery.delivered_at }}</td></tr>
+      {% if dispatch.carrier %}<tr><td>Carrier</td><td>{{ dispatch.carrier }}{% if dispatch.tracking_number %} · {{ dispatch.tracking_number }}{% endif %}</td></tr>{% endif %}
+    </table>
+  </div>
+</div>
+
+<table class="lines">
+  <thead><tr><th>#</th><th>Item</th><th>Lot / expiry</th><th class="num">Delivered</th><th>Unit</th></tr></thead>
+  <tbody>
+  {% for line in lines %}{% if line.shipped != '0' %}
+    <tr>
+      <td>{{ line.line_no }}</td>
+      <td><strong>{{ line.sku }}</strong><br>{{ line.name }}</td>
+      <td>{% for lot in line.lots %}{{ lot.lot_no }}{% if lot.expiry %} · exp. {{ lot.expiry }}{% endif %} ({{ lot.quantity }})<br>{% endfor %}</td>
+      <td class="num">{{ line.shipped }}</td>
+      <td>{{ line.unit }}</td>
+    </tr>
+  {% endif %}{% endfor %}
+  </tbody>
+</table>
+<p class="muted">{{ totals.shipped }} units delivered.{% if dispatch.backorder_number %} Outstanding items follow on {{ dispatch.backorder_number }}.{% endif %}</p>
+
+<div class="received">
+  <div class="who">
+    <h2>Received in good order by</h2>
+    <strong>{{ delivery.receiver_name }}</strong><br>
+    {{ delivery.delivered_at }}
+    {% if delivery.notes %}<br><span class="muted">{{ delivery.notes }}</span>{% endif %}
+  </div>
+  <div class="signature">
+    {% if delivery.signature %}<img src="{{ delivery.signature }}" alt="Signature">{% endif %}
+    <div>Signature</div>
+  </div>
+</div>
+
+<footer>{% if company.footer %}{{ company.footer }}<br>{% endif %}
+{% if company.registration_number %}Reg. {{ company.registration_number }} {% endif %}{% if company.vat_number %}· VAT {{ company.vat_number }}{% endif %}</footer>
+</body>
+</html>

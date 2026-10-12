@@ -150,6 +150,69 @@ public sealed class ReservationService(IApplicationDbContext db, IStockStore sto
         await ledger.ApplyAsync(changes, cancellationToken);
     }
 
+    /// <summary>
+    /// Moves the outstanding part of open reservations from one document to another (a backorder), line by line.
+    /// The reserved stock stays reserved on the same balances, so balances do not change.
+    /// </summary>
+    public async Task<IReadOnlyList<StockReservation>> TransferAsync(string sourceType, Guid fromSourceId, Guid toSourceId,
+        IReadOnlyDictionary<Guid, Guid> lineMap, CancellationToken cancellationToken)
+    {
+        RequireTransaction();
+        var open = await db.StockReservations
+            .Where(r => r.SourceType == sourceType && r.SourceId == fromSourceId && r.Status == ReservationStatus.Open)
+            .ToListAsync(cancellationToken);
+        var created = new List<StockReservation>();
+        foreach (var r in open.Where(r => r.Outstanding > 0))
+        {
+            if (!lineMap.TryGetValue(r.SourceLineId, out var newLineId)) continue;
+            var balance = await db.InventoryBalances.AsNoTracking().SingleAsync(b => b.Id == r.BalanceId, cancellationToken);
+            var q = r.Release();
+            created.Add(StockReservation.Create(balance, sourceType, toSourceId, newLineId, q));
+        }
+        db.StockReservations.AddRange(created);
+        return created;
+    }
+
+    /// <summary>
+    /// Moves <paramref name="quantity"/> of a reservation to another bin and/or lot of the same product (the picker took
+    /// the goods from somewhere else). The target must be eligible stock with enough free quantity.
+    /// </summary>
+    public async Task<StockReservation> ReallocateAsync(StockReservation reservation, Guid locationId, Guid? lotId, decimal quantity, DateOnly dispatchDate, CancellationToken cancellationToken)
+    {
+        RequireTransaction();
+        if (reservation.Status != ReservationStatus.Open || quantity <= 0 || quantity > reservation.Outstanding)
+        {
+            throw new DomainRuleException("reservation.reallocate", $"Only {reservation.Outstanding:0.###} of this allocation can be moved.", isConflict: true);
+        }
+        var oldBalance = await db.InventoryBalances.AsNoTracking().SingleAsync(b => b.Id == reservation.BalanceId, cancellationToken);
+        if (oldBalance.LocationId == locationId && oldBalance.LotId == lotId)
+        {
+            throw new DomainRuleException("reservation.same_place", "The goods are already allocated to that bin and lot.");
+        }
+
+        var location = await db.WarehouseLocations.AsNoTracking().SingleOrDefaultAsync(l => l.Id == locationId && l.WarehouseId == oldBalance.WarehouseId, cancellationToken)
+            ?? throw new DomainRuleException("location.unknown", "Bin not found in this warehouse.");
+        if (!location.IsActive || !location.IsPickable || location.Type != LocationType.Storage)
+        {
+            throw new DomainRuleException("reservation.bin_not_pickable", $"Bin {location.Code} is not a pickable storage bin.");
+        }
+        if (lotId is { } lid)
+        {
+            var lot = await db.ProductLots.AsNoTracking().SingleAsync(l => l.Id == lid, cancellationToken);
+            if (!lot.IsReservable(dispatchDate.AddDays(options.Value.MinShelfLifeDays)))
+            {
+                throw new DomainRuleException("reservation.lot_not_usable", $"Lot {lot.LotNo} is expired, quarantined or blocked and cannot be dispatched.");
+            }
+        }
+
+        var target = new BalanceKey(oldBalance.WarehouseId, locationId, oldBalance.ProductId, lotId);
+        var balances = await ledger.ApplyAsync([new StockChange(KeyOf(oldBalance), 0, -quantity), new StockChange(target, 0, quantity)], cancellationToken);
+        reservation.Release(quantity);
+        var moved = StockReservation.Create(balances[target], reservation.SourceType, reservation.SourceId, reservation.SourceLineId, quantity);
+        db.StockReservations.Add(moved);
+        return moved;
+    }
+
     private sealed record Candidate(Guid Id, Guid ProductId, decimal Available);
 
     /// <summary>Eligible balances in FEFO order.</summary>

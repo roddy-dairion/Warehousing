@@ -1,6 +1,8 @@
 using Inventory.Application.Auth;
 using Inventory.Application.Common;
+using Inventory.Application.Documents;
 using Inventory.Application.Inventory;
+using Inventory.Infrastructure.Documents;
 using Inventory.Application.Roles;
 using Inventory.Application.Users;
 using Inventory.Infrastructure.Auth;
@@ -63,6 +65,18 @@ public static class DependencyInjection
         services.AddScoped<DatabaseSeeder>();
         services.AddScoped<IUserDirectory, UserDirectory>();
         services.AddScoped<IStockStore, StockStore>();
+        services.AddOptions<Application.Dispatches.DispatchOptions>().Bind(configuration.GetSection(Application.Dispatches.DispatchOptions.Section));
+        services.AddOptions<DocumentOptions>().Bind(configuration.GetSection(DocumentOptions.Section));
+        services.AddOptions<PdfOptions>().Bind(configuration.GetSection(PdfOptions.Section));
+        services.AddOptions<EmailOptions>().Bind(configuration.GetSection(EmailOptions.Section));
+        services.AddSingleton<ITemplateEngine, FluidTemplateEngine>();
+        services.AddSingleton<IPdfRenderer, PuppeteerPdfRenderer>();
+        services.AddSingleton<IEmailSender, MailKitEmailSender>();
+        services.AddSingleton<OutboxProcessor>();
+        if (configuration.GetSection(EmailOptions.Section).Get<EmailOptions>()?.WorkerEnabled ?? true)
+        {
+            services.AddHostedService<OutboxWorker>();
+        }
         services.AddOptions<InventoryOptions>().Bind(configuration.GetSection(InventoryOptions.Section));
         if (configuration.GetSection(InventoryOptions.Section).Get<InventoryOptions>()?.MaintenanceEnabled ?? true)
         {

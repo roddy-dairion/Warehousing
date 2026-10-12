@@ -1,3 +1,5 @@
+using Inventory.Application.Documents;
+using Inventory.Domain.Documents;
 using Inventory.Domain.Products;
 using Inventory.Domain.Security;
 using Inventory.Domain.Warehouses;
@@ -21,6 +23,11 @@ public sealed class SeedOptions
     public string? AdminEmail { get; set; }
     public string? AdminPassword { get; set; }
     public string AdminDisplayName { get; set; } = "Administrator";
+
+    /// <summary>Company details created when none exist (editable in the admin screens).</summary>
+    public string CompanyName { get; set; } = "HelloCherie";
+    public string CompanyEmail { get; set; } = "dispatch@hellocherie.ch";
+    public string CompanyTimeZone { get; set; } = "Indian/Mauritius";
 }
 
 /// <summary>Idempotent start-up seeding: permission catalogue, built-in roles, first warehouse, first admin.</summary>
@@ -42,6 +49,26 @@ public sealed class DatabaseSeeder(
         await EnsureSystemLocationsAsync(cancellationToken);
         await EnsureUnitsAsync(cancellationToken);
         await EnsureAdminAsync(cancellationToken);
+        await EnsureDocumentSetupAsync(cancellationToken);
+    }
+
+    /// <summary>Company profile and version 1 of each document template (only when missing; edits are never overwritten).</summary>
+    private async Task EnsureDocumentSetupAsync(CancellationToken cancellationToken)
+    {
+        if (!await db.CompanyProfiles.AnyAsync(cancellationToken))
+        {
+            var company = CompanyProfile.Create(_options.CompanyName);
+            company.Update(_options.CompanyName, null, null, null, null, null, _options.CompanyEmail, null, null, null, null, _options.CompanyTimeZone);
+            db.CompanyProfiles.Add(company);
+        }
+        foreach (var type in Enum.GetValues<DocumentType>())
+        {
+            if (!await db.DocumentTemplates.AnyAsync(t => t.Type == type, cancellationToken))
+            {
+                db.DocumentTemplates.Add(DocumentTemplate.Create(type, 1, TemplateService.DefaultHtml(type), "Default template", null, clock.GetUtcNow()));
+            }
+        }
+        await db.SaveChangesAsync(cancellationToken);
     }
 
     private async Task SyncPermissionsAsync(CancellationToken cancellationToken)

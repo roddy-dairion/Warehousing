@@ -29,6 +29,9 @@ public class ApiFactory : WebApplicationFactory<Program>, IAsyncLifetime
 
     private readonly string _database = $"inventory_test_{Guid.NewGuid():N}";
 
+    /// <summary>Where test emails are written (.eml files).</summary>
+    public string MailDirectory => Path.Combine(Path.GetTempPath(), "inventory-tests", _database, "mail");
+
     public string ConnectionString => new NpgsqlConnectionStringBuilder(ServerConnection) { Database = _database }.ConnectionString;
 
     /// <summary>Overridable settings (e.g. lower rate limits for a specific test class).</summary>
@@ -46,6 +49,11 @@ public class ApiFactory : WebApplicationFactory<Program>, IAsyncLifetime
         builder.UseSetting("RateLimiting:RefreshPerMinute", "1000");
         builder.UseSetting("Serilog:MinimumLevel:Default", "Warning");
         builder.UseSetting("Inventory:MaintenanceEnabled", "false");
+        builder.UseSetting("Email:WorkerEnabled", "false");
+        builder.UseSetting("Email:Mode", "Pickup");
+        builder.UseSetting("Email:PickupDirectory", MailDirectory);
+        builder.UseSetting("Storage:RootPath", Path.Combine(Path.GetTempPath(), "inventory-tests", _database, "files"));
+        builder.UseSetting("Pdf:NoSandbox", "true");
         foreach (var (key, value) in ExtraSettings) builder.UseSetting(key, value);
     }
 

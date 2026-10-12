@@ -20,4 +20,7 @@ public interface IWarehouseAccess
     /// the user is entitled to (all for administrators, explicitly granted ones otherwise).
     /// </summary>
     Task EnsureCanManageAsync(Guid warehouseId, CancellationToken cancellationToken);
+
+    /// <summary>True when another user is active, holds the picking permission and may access the warehouse (for assigning picking).</summary>
+    Task<bool> UserCanPickAsync(Guid userId, Guid warehouseId, CancellationToken cancellationToken);
 }

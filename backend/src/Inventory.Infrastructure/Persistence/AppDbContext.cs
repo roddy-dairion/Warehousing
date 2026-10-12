@@ -2,6 +2,8 @@ using Inventory.Application.Common;
 using Inventory.Domain.Auditing;
 using Inventory.Domain.Customers;
 using Inventory.Domain.Files;
+using Inventory.Domain.Dispatches;
+using Inventory.Domain.Documents;
 using Inventory.Domain.Inventory;
 using Inventory.Domain.Products;
 using Inventory.Domain.Warehouses;
@@ -35,6 +37,14 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options)
     public DbSet<GoodsReceipt> GoodsReceipts => Set<GoodsReceipt>();
     public DbSet<StockAdjustment> StockAdjustments => Set<StockAdjustment>();
     public DbSet<StockTransfer> StockTransfers => Set<StockTransfer>();
+    public DbSet<Dispatch> Dispatches => Set<Dispatch>();
+    public DbSet<PickConfirmation> PickConfirmations => Set<PickConfirmation>();
+    public DbSet<DispatchDiscrepancy> DispatchDiscrepancies => Set<DispatchDiscrepancy>();
+    public DbSet<ProofOfDelivery> ProofsOfDelivery => Set<ProofOfDelivery>();
+    public DbSet<DocumentTemplate> DocumentTemplates => Set<DocumentTemplate>();
+    public DbSet<DispatchDocument> DispatchDocuments => Set<DispatchDocument>();
+    public DbSet<CompanyProfile> CompanyProfiles => Set<CompanyProfile>();
+    public DbSet<EmailMessage> EmailMessages => Set<EmailMessage>();
     public DbSet<DocumentSequence> DocumentSequences => Set<DocumentSequence>();
     public DbSet<IdempotencyRecord> IdempotencyRecords => Set<IdempotencyRecord>();
 
