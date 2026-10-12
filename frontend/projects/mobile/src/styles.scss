@@ -27,3 +27,38 @@
 body {
   font-feature-settings: 'tnum' 1;
 }
+
+/* ---- Camera scanning: the camera preview is drawn behind the web view, so hide the app and make everything transparent. */
+html:has(body.wh-scanning),
+body.wh-scanning {
+  background: transparent !important;
+  --ion-background-color: transparent;
+}
+body.wh-scanning ion-app {
+  visibility: hidden;
+}
+
+/* ---- Shared page bits */
+.wh-muted { color: var(--ion-color-medium-shade); }
+.wh-num { font-variant-numeric: tabular-nums; }
+.wh-section { padding: 0 16px; }
+.wh-section h2 { font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.04em; color: var(--ion-color-medium-shade); margin: 20px 0 8px; }
+.wh-figures { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin: 12px 16px; }
+.wh-figures div { background: var(--ion-color-light); border-radius: 8px; padding: 10px; text-align: center; }
+.wh-figures strong { display: block; font-size: 1.4rem; }
+.wh-figures span { font-size: 0.75rem; color: var(--ion-color-medium-shade); }
+.wh-actions { display: flex; flex-direction: column; gap: 8px; padding: 16px; }
+.wh-actions ion-button { margin: 0; --border-radius: 8px; min-height: 52px; }
+.wh-empty { padding: 32px 16px; text-align: center; color: var(--ion-color-medium-shade); }
+.wh-card { margin: 12px 16px; padding: 14px; border-radius: 10px; background: var(--ion-color-light); }
+.wh-card.target { border-left: 6px solid var(--wh-hazard); }
+.wh-big { font-size: 1.6rem; font-weight: 600; }
+.inactive { color: var(--ion-color-danger); }
+
+/* Segments inside the dark toolbar */
+ion-toolbar ion-segment-button {
+  --color: rgba(255, 255, 255, 0.72);
+  --color-checked: #ffffff;
+  --indicator-color: var(--wh-hazard);
+}
+ion-note.qty-note { font-size: 1rem; color: var(--ion-text-color); }

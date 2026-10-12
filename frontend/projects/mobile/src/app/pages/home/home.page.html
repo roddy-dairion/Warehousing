@@ -15,16 +15,17 @@
 </ion-header>
 
 <ion-content>
+  <ion-refresher slot="fixed" (ionRefresh)="refresh($event)"><ion-refresher-content /></ion-refresher>
   <p class="greeting ion-padding-horizontal">Signed in as {{ user()?.displayName }}</p>
   <ion-list lines="full">
     @for (a of actions(); track a.label) {
-      <ion-item button detail disabled>
+      <ion-item button detail [routerLink]="a.link">
         <ion-icon slot="start" [name]="a.icon" aria-hidden="true" />
         <ion-label>
           <h2>{{ a.label }}</h2>
           <p>{{ a.hint }}</p>
         </ion-label>
-        <ion-note slot="end">Phase 7</ion-note>
+        @if (a.badge) { <ion-badge slot="end" color="warning">{{ a.badge }}</ion-badge> }
       </ion-item>
     } @empty {
       <p class="ion-padding">Your role has no warehouse actions yet. Ask a manager to check your permissions.</p>

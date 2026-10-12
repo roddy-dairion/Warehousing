@@ -1,0 +1,14 @@
+.progress { margin-top: 12px; }
+.progress .row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; min-height: 32px; }
+.label { font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--ion-color-medium-shade); }
+.where { font-size: 1.5rem; margin: 2px 0; }
+.what { font-size: 1.05rem; }
+.left { margin-top: 6px; font-size: 1.2rem; font-weight: 600; }
+.scans { display: flex; flex-direction: column; gap: 10px; }
+.confirm { display: flex; flex-direction: column; gap: 10px; background: #fff8e1; }
+.buttons ion-button { margin: 0; }
+.done { display: flex; gap: 10px; align-items: center; font-size: 1.05rem; }
+.done ion-icon { font-size: 2rem; }
+ion-item.selected { --background: #fff8e1; }
+ion-note { font-size: 1rem; color: var(--ion-text-color); display: flex; align-items: center; gap: 4px; }
+.other { margin: 4px 0 0 -8px; }

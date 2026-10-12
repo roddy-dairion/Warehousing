@@ -26,7 +26,7 @@ npm run build          # production builds into dist/web and dist/mobile
 
 ## Testing the mobile app
 
-**1. In the browser (quickest, no camera):** start the API, then `npm run start:mobile` and open http://localhost:4201. In Chrome DevTools, toggle the device toolbar (Ctrl+Shift+M) to get a phone-sized screen. Scanning will need a real device.
+**1. In the browser (quickest, no camera):** start the API, then `npm run start:mobile` and open http://localhost:4201. In Chrome DevTools, toggle the device toolbar (Ctrl+Shift+M) to get a phone-sized screen. There is no camera scanning in the browser: type the code and press Enter (a USB scanner gun works too, it types the code and presses Enter). Camera scanning needs a real device.
 
 **2. Android emulator:** needs Android Studio (with an emulator image) and JDK 21 (bundled with Android Studio).
 ```powershell
@@ -44,7 +44,15 @@ Start the API normally (http profile) first.
 
 The phone must be on the same network as the PC, and that network must be set to *Private* in Windows.
 
-**iOS:** needs a Mac with Xcode (`npx cap add ios`, then build in Xcode). Not set up yet.
+**4. iPhone / iPad:** needs a Mac with Xcode 16+ and CocoaPods (`sudo gem install cocoapods` or `brew install cocoapods`). The Xcode project is in `projects/mobile/ios` (CocoaPods, because ML Kit does not support Swift Package Manager; minimum iOS 15.5).
+```bash
+npm ci
+npm run ios:sync        # builds the "device" config and runs pod install
+npm run ios:open        # opens the workspace in Xcode: pick your team under Signing, choose the phone, Run
+```
+For a phone on Wi-Fi, set the PC's IP in `environment.device.ts` as for Android. `Info.plist` allows plain HTTP on the local network (`NSAllowsLocalNetworking`) for development; production uses HTTPS.
+
+See [docs/10-mobile-app.md](../docs/10-mobile-app.md) for the screens and the device test checklist.
 
 Debug builds allow plain HTTP to the local API (`CAP_DEV=1` in `android:sync`). Release builds must be synced with `npm run build:mobile`, which allows HTTPS only.
 

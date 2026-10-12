@@ -13,7 +13,9 @@
     "lint:types": "tsc -p projects/web/tsconfig.app.json --noEmit && tsc -p projects/mobile/tsconfig.app.json --noEmit",
     "android:sync": "ng build mobile --configuration device && cross-env CAP_DEV=1 cap sync android",
     "android:open": "cap open android",
-    "android:run": "npm run android:sync && cap run android"
+    "android:run": "npm run android:sync && cap run android",
+    "ios:sync": "ng build mobile --configuration device && cap sync ios",
+    "ios:open": "cap open ios"
   },
   "private": true,
   "packageManager": "npm@10.9.4",

@@ -13,6 +13,7 @@ Web app (Angular + PrimeNG), warehouse mobile app (Ionic + Capacitor), ASP.NET C
   7. [Inventory engine (Phase 4)](docs/07-inventory-engine.md)
   8. [Dispatch engine (Phase 5)](docs/08-dispatch-engine.md)
   9. [Web interface (Phase 6)](docs/09-web-interface.md)
+  10. [Warehouse mobile app (Phase 7)](docs/10-mobile-app.md)
 
 ## Local development
 
@@ -43,4 +44,5 @@ Only PostgreSQL runs in Docker. The API and the Angular apps run directly from V
 * Phase 4 (inventory engine): done (backend). Stock balances by bin and lot, append-only ledger, goods receipts, adjustments with approval, bin moves, FEFO reservations, idempotency, reconciliation. 141 backend tests.
 * Phase 5 (dispatch engine): done (backend). Dispatch workflow with approval and reservation, barcode-checked picking, close-short or backorder shipping, proof of delivery (photos, name, signature), packing slip and signed delivery note PDFs from editable templates, delivery note emailed to the customer. 170 backend tests.
 * Phase 6 (web interface): done. Dashboard, stock, receipts, adjustments, bin moves, the full dispatch workflow (scanner picking, shipping, delivery with photos and signature), reports with CSV, audit log, company settings and template editor. 178 backend and 42 frontend tests; browser smoke test in `tools/e2e/web_smoke.py`.
-* Next: Phase 7 (warehouse mobile app).
+* Phase 7 (warehouse mobile app): built and tested in a phone-sized browser. Scan products, cartons and bins (camera or scanner gun), stock lookup, guided picking with barcode checks, shipment confirmation, proof of delivery (photos and signature), receiving goods, recent activity. Android and iOS projects are ready; real-device testing (camera scanning under warehouse lighting) is still to do. Browser smoke test in `tools/e2e/mobile_smoke.py`.
+* Next: device tests for Phase 7, then Phase 8 (quality assurance).

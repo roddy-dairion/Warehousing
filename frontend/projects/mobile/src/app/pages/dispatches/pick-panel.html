@@ -1,0 +1,99 @@
+@let d = dispatch();
+<div class="progress wh-section">
+  <div class="row">
+    <span><strong class="wh-num">{{ progress().done }}</strong> of {{ progress().total }} lines picked</span>
+    @if (d.assignedToName) { <span class="wh-muted">{{ d.assignedToName }}</span> }
+    @else { <ion-button size="small" fill="clear" (click)="takeJob()" [disabled]="busy()">Take this job</ion-button> }
+  </div>
+  <ion-progress-bar [value]="progress().ratio" />
+</div>
+
+@if (current(); as t) {
+  <div class="wh-card target" data-testid="next-task">
+    <div class="label">Next</div>
+    <div class="where">Bin <strong>{{ t.locationCode }}</strong></div>
+    <div class="what"><strong>{{ t.sku }}</strong> {{ t.productName }}</div>
+    <div class="wh-muted">
+      @if (t.lotNo) { Lot <strong>{{ t.lotNo }}</strong> }
+      @if (t.expiryDate) { · exp. {{ t.expiryDate | date: 'dd.MM.yyyy' }} }
+    </div>
+    <div class="left wh-num">{{ qty(t.remaining) }} {{ t.baseUnitCode }} left</div>
+  </div>
+
+  <div class="wh-section scans">
+    <wh-scan-field #binField label="Bin" placeholder="Scan the bin label" prompt="Scan the bin label" [keep]="true" [value]="bin()"
+      [disabled]="busy()" testId="pick-bin" (scanned)="onBin($event)" />
+    <wh-scan-field #productField label="Product" placeholder="Scan the product or carton" prompt="Scan the product or carton barcode"
+      [disabled]="busy() || !bin()" testId="pick-product" (scanned)="onProduct($event)" />
+  </div>
+
+  @if (scanned(); as s) {
+    <div class="wh-card confirm">
+      <div><strong>{{ s.lookup.sku }}</strong> {{ s.lookup.name }}</div>
+      <div class="wh-muted">
+        Scanned {{ s.lookup.factorToBase === 1 ? s.lookup.baseUnitCode : s.lookup.unitCode + ' (' + qty(s.lookup.factorToBase) + ' ' + s.lookup.baseUnitCode + ')' }}
+      </div>
+      @if (s.lookup.isLotTracked) {
+        <ion-input class="lot" label="Lot (check the label)" labelPlacement="stacked" fill="outline" [(ngModel)]="lotNo" autocapitalize="characters"
+          data-testid="pick-lot" />
+      }
+      <wh-qty-stepper [label]="'Quantity (' + (s.lookup.factorToBase === 1 ? s.lookup.baseUnitCode : s.lookup.unitCode) + ')'" [value]="quantity()"
+        (valueChange)="quantity.set($event)" [min]="0" testId="pick-qty" />
+      @if (tooMuch()) { <p class="inactive">That is more than the {{ qty(t.remaining) }} {{ t.baseUnitCode }} left to pick.</p> }
+      <div class="buttons">
+        <ion-button expand="block" size="large" (click)="pick()" [disabled]="busy() || !quantity() || tooMuch()" data-testid="pick-confirm">
+          Pick {{ qty(quantity() ?? 0) }} {{ s.lookup.factorToBase === 1 ? s.lookup.baseUnitCode : s.lookup.unitCode }}
+          @if (s.lookup.factorToBase !== 1) { ({{ qty(baseQty()) }} {{ s.lookup.baseUnitCode }}) }
+        </ion-button>
+        <ion-button expand="block" fill="clear" (click)="clearScan()">Cancel</ion-button>
+      </div>
+    </div>
+  }
+} @else if (pickList()) {
+  <div class="wh-card done">
+    <ion-icon name="checkmark-circle" color="success" aria-hidden="true" />
+    <div>Everything reserved has been picked.</div>
+  </div>
+}
+
+<div class="wh-section"><h2>Pick list</h2></div>
+<ion-list lines="full">
+  @for (t of pickList()?.tasks ?? []; track t.reservationId) {
+    <ion-item [button]="t.remaining > 0" [detail]="false" (click)="selectTask(t)" [class.selected]="t.reservationId === current()?.reservationId">
+      <ion-label>
+        <h3>{{ t.locationCode }} · {{ t.sku }}</h3>
+        <p>{{ t.productName }}@if (t.lotNo) { · lot {{ t.lotNo }} }</p>
+        @if (t.remaining > 0) {
+          <ion-button size="small" fill="clear" class="other" (click)="$event.stopPropagation(); otherBin(t)" [disabled]="busy()">
+            <ion-icon slot="start" name="swap-horizontal-outline" /> Other bin
+          </ion-button>
+        }
+      </ion-label>
+      <ion-note slot="end" class="wh-num">
+        @if (t.remaining <= 0) { <ion-icon name="checkmark-circle" color="success" aria-label="Done" /> }
+        {{ qty(t.picked) }} / {{ qty(t.quantity) }}
+      </ion-note>
+    </ion-item>
+  }
+</ion-list>
+
+@if (recent().length > 0) {
+  <div class="wh-section"><h2>Your picks</h2></div>
+  <ion-list lines="full">
+    @for (p of recent(); track p.pickId) {
+      <ion-item>
+        <ion-label>{{ p.sku }} · {{ qty(p.quantity) }} from {{ p.locationCode }}@if (p.lotNo) { · lot {{ p.lotNo }} }</ion-label>
+        <ion-button slot="end" fill="clear" (click)="undo(p)" [disabled]="busy()"><ion-icon slot="start" name="arrow-undo-outline" /> Undo</ion-button>
+      </ion-item>
+    }
+  </ion-list>
+}
+
+<div class="wh-actions">
+  @if (d.actions.canCompletePicking) {
+    <ion-button expand="block" (click)="done()" [disabled]="busy() || !progress().anyPicked" data-testid="pick-done">Picking done</ion-button>
+  }
+  <ion-button expand="block" fill="outline" color="medium" (click)="reportProblem()" [disabled]="busy()">
+    <ion-icon slot="start" name="flag-outline" /> Report a problem
+  </ion-button>
+</div>

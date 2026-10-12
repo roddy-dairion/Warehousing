@@ -1,0 +1,74 @@
+@let r = receipt();
+<ion-header>
+  <ion-toolbar>
+    <ion-buttons slot="start"><ion-back-button defaultHref="/receipts" /></ion-buttons>
+    <ion-title>{{ r?.number ?? 'New receipt' }}</ion-title>
+    @if (editable() && canEdit) {
+      <ion-buttons slot="end"><ion-button (click)="save()" [disabled]="busy() || !dirty()" data-testid="receipt-save">Save</ion-button></ion-buttons>
+    }
+  </ion-toolbar>
+</ion-header>
+
+<ion-content>
+  @if (loading()) {
+    <div class="wh-empty"><ion-spinner /></div>
+  } @else {
+    @if (r && !editable()) { <p class="wh-section wh-muted">This receipt is {{ r.status }} and can no longer be changed.</p> }
+
+    <div class="wh-section fields">
+      <ion-input label="Supplier" labelPlacement="stacked" fill="outline" [(ngModel)]="supplierName" (ionInput)="dirty.set(true)"
+        [disabled]="!editable() || !canEdit" data-testid="receipt-supplier" />
+      <ion-input label="Delivery note / invoice no." labelPlacement="stacked" fill="outline" [(ngModel)]="supplierReference" (ionInput)="dirty.set(true)"
+        [disabled]="!editable() || !canEdit" />
+    </div>
+
+    @if (editable() && canEdit) {
+      <div class="wh-section scan">
+        <wh-scan-field #scan label="Product or carton" placeholder="Scan to add one" prompt="Scan the product or carton barcode"
+          testId="receipt-scan" (scanned)="onScan($event)" />
+      </div>
+    }
+
+    <div class="wh-section"><h2>Lines ({{ lines().length }})</h2></div>
+    @for (l of lines(); track l.key) {
+      <div class="wh-card line" [class.target]="l.key === lastKey()">
+        <div class="title">
+          <div><strong>{{ l.product.sku }}</strong> {{ l.product.name }}</div>
+          @if (editable() && canEdit) {
+            <ion-button fill="clear" color="danger" size="small" (click)="remove(l)" aria-label="Remove line"><ion-icon slot="icon-only" name="trash-outline" /></ion-button>
+          }
+        </div>
+        @if (l.expected !== null) { <div class="wh-muted">Expected {{ qty(l.expected) }} {{ l.product.baseUnitCode }}</div> }
+        <wh-qty-stepper [label]="'Counted (' + unitLabel(l) + ')'" [value]="l.quantity" (valueChange)="update(l.key, { quantity: $event })"
+          [disabled]="!editable() || !canEdit" [testId]="'receipt-qty-' + l.product.sku" />
+        <wh-scan-field label="Bin (empty = RECEIVING)" placeholder="Scan the bin label" prompt="Scan the bin label" [keep]="true" [value]="binCode(l)"
+          [disabled]="!editable() || !canEdit" [testId]="'receipt-bin-' + l.product.sku" (scanned)="onBin(l, $event)" />
+        @if (l.product.isLotTracked) {
+          <div class="pair">
+            <ion-input label="Lot" labelPlacement="stacked" fill="outline" [ngModel]="l.lotNo" (ngModelChange)="update(l.key, { lotNo: $event ?? '' })"
+              autocapitalize="characters" [disabled]="!editable() || !canEdit" [attr.data-testid]="'receipt-lot-' + l.product.sku" />
+            @if (l.product.hasExpiry) {
+              <ion-input label="Expiry" labelPlacement="stacked" fill="outline" type="date" [ngModel]="l.expiryDate"
+                (ngModelChange)="update(l.key, { expiryDate: $event ?? '' })" [disabled]="!editable() || !canEdit"
+                [attr.data-testid]="'receipt-expiry-' + l.product.sku" />
+            }
+          </div>
+        }
+      </div>
+    } @empty {
+      <p class="wh-empty">Scan the first product of the delivery.</p>
+    }
+
+    @if (editable()) {
+      <div class="wh-actions">
+        @if (canPost) {
+          <ion-button expand="block" size="large" (click)="post()" [disabled]="busy() || lines().length === 0" data-testid="receipt-post">Post to stock</ion-button>
+        }
+        @if (canEdit) {
+          <ion-button expand="block" fill="outline" (click)="save()" [disabled]="busy() || !dirty()">Save draft</ion-button>
+        }
+        @if (!canPost) { <p class="wh-muted hint">A manager posts the receipt to stock after checking it.</p> }
+      </div>
+    }
+  }
+</ion-content>

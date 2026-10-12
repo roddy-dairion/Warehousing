@@ -1,0 +1,78 @@
+<ion-header>
+  <ion-toolbar>
+    <ion-buttons slot="start"><ion-back-button defaultHref="/" /></ion-buttons>
+    <ion-title>Scan</ion-title>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content class="ion-padding-vertical">
+  <div class="wh-section">
+    <wh-scan-field label="Product, pack or bin" placeholder="Scan, or type SKU / name" prompt="Scan a product, pack or bin label"
+      [disabled]="busy()" testId="scan" (scanned)="lookup($event)" />
+  </div>
+
+  @if (busy()) {
+    <div class="wh-empty"><ion-spinner /></div>
+  } @else if (result(); as r) {
+    @switch (r.kind) {
+      @case ('product') {
+        <div class="wh-card target">
+          <div class="wh-big">{{ r.sku }}</div>
+          <div>{{ r.name }}</div>
+          @if (r.lookup; as l) {
+            <p class="wh-muted">Barcode {{ l.barcode }} = {{ l.factorToBase === 1 ? '1 ' + l.baseUnitCode : '1 ' + l.unitCode + ' (' + qty(l.factorToBase) + ' ' + l.baseUnitCode + ')' }}
+              @if (l.isLotTracked) { · lot-tracked } @if (l.hasExpiry) { · expiry dates }</p>
+          }
+          @if (!r.active) { <p class="inactive"><strong>Inactive product</strong></p> }
+        </div>
+        @if (r.stock; as s) {
+          @let f = figuresHere(s);
+          <div class="wh-figures">
+            <div><strong class="wh-num">{{ qty(f.onHand) }}</strong><span>on hand</span></div>
+            <div><strong class="wh-num">{{ qty(f.reserved) }}</strong><span>reserved</span></div>
+            <div><strong class="wh-num">{{ qty(f.available) }}</strong><span>available {{ s.baseUnitCode }}</span></div>
+          </div>
+          <div class="wh-section"><h2>By bin and lot</h2></div>
+          <wh-balance-list [balances]="balancesHere(s)" />
+          <div class="wh-actions">
+            <ion-button fill="outline" [routerLink]="['/products', r.productId]">Details and movements</ion-button>
+          </div>
+        } @else if (!canSeeStock) {
+          <p class="wh-empty">You can identify products but not see stock levels.</p>
+        }
+      }
+      @case ('bin') {
+        <div class="wh-card target">
+          <div class="wh-big">Bin {{ r.bin.code }}</div>
+          <div class="wh-muted">{{ r.bin.type }}@if (r.bin.zone) { · zone {{ r.bin.zone }} }@if (!r.bin.isPickable) { · not pickable }@if (!r.bin.isActive) { · inactive }</div>
+        </div>
+        @if (canSeeStock) {
+          <div class="wh-section"><h2>In this bin</h2></div>
+          <wh-balance-list [balances]="r.balances" [showProduct]="true" />
+        }
+      }
+      @case ('search') {
+        <div class="wh-section"><h2>Products matching "{{ r.code }}"</h2></div>
+        <ion-list lines="full">
+          @for (p of r.products; track p.id) {
+            <ion-item button detail (click)="open(p)">
+              <ion-label>
+                <h3>{{ p.sku }}</h3>
+                <p>{{ p.name }}</p>
+              </ion-label>
+              @if (!p.isActive) { <ion-note slot="end">inactive</ion-note> }
+            </ion-item>
+          }
+        </ion-list>
+      }
+      @case ('unknown') {
+        <div class="wh-empty">
+          <p><strong>Unknown code "{{ r.code }}"</strong></p>
+          <p>It is not a product barcode, a bin, or a SKU/name. Check the label, or ask an office user to add the barcode to the product.</p>
+        </div>
+      }
+    }
+  } @else {
+    <p class="wh-empty">Scan a product, a carton or a bin label.<br />No camera? Type the barcode, SKU or name and press Enter.</p>
+  }
+</ion-content>
