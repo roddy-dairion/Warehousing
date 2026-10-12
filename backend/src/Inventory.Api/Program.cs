@@ -29,6 +29,11 @@ try
 
     // --- Authentication: short-lived JWT access tokens -------------------------------------
     var jwt = builder.Configuration.GetSection(JwtOptions.Section).Get<JwtOptions>() ?? new JwtOptions();
+    // Fail at start-up, not at the first sign-in, when the signing key is missing or too short (HMAC-SHA256 needs 256 bits).
+    if (System.Text.Encoding.UTF8.GetByteCount(jwt.SigningKey) < 32)
+    {
+        throw new InvalidOperationException("Jwt:SigningKey must be set to at least 32 characters (user-secrets in development, the Jwt__SigningKey environment variable in production).");
+    }
     builder.Services
         .AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
         .AddJwtBearer(o =>
@@ -94,6 +99,7 @@ try
     var app = builder.Build();
 
     app.UseForwardedHeaders();
+    app.UseSecurityHeaders();
     // Request logging wraps the exception handler so it records the final status code (e.g. 404), not 500.
     app.UseSerilogRequestLogging(o =>
     {

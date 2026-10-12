@@ -113,4 +113,23 @@ describe('PickPanel', () => {
     expect(api.pick).toHaveBeenLastCalledWith('d1', expect.objectContaining({ location: 'A-02', barcode: 'oil', quantity: 8, lotNo: null }));
     expect(panel.scanned()).toBeNull();
   });
+
+  it('never queues or retries a failed pick by itself (online only)', async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    try {
+      const { panel, api, products } = await setup();
+      localStorage.clear();
+      products.lookupBarcode.mockResolvedValue(lookup('oil', 'OIL-1L'));
+      panel.onBin('A-02');
+      await panel.onProduct('oil');
+      api.pick.mockRejectedValue(new HttpErrorResponse({ status: 0 }));
+      await panel.pick();
+      await vi.advanceTimersByTimeAsync(5 * 60_000);
+      expect(api.pick).toHaveBeenCalledTimes(1);
+      expect(localStorage.length).toBe(0);
+      expect(panel.scanned()).not.toBeNull(); // the pick waits for the user to tap again
+    } finally {
+      vi.useRealTimers();
+    }
+  });
 });

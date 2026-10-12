@@ -83,11 +83,22 @@ public sealed class ReportService(IApplicationDbContext db, IWarehouseAccess acc
             csv.NextRecord();
             foreach (var row in report.Rows)
             {
-                foreach (var v in row) csv.WriteField(v);
+                foreach (var v in row) csv.WriteField(SafeCell(v));
                 csv.NextRecord();
             }
         }
         return ms.ToArray();
+    }
+
+    /// <summary>
+    /// CSV/formula injection guard: text typed by users (product names, notes, lots…) that starts with = + - @ or a control
+    /// character would run as a formula when the file is opened in Excel. Such cells get a leading apostrophe.
+    /// Numbers (e.g. "-24") are left as they are.
+    /// </summary>
+    public static string? SafeCell(string? value)
+    {
+        if (string.IsNullOrEmpty(value) || value[0] is not ('=' or '+' or '-' or '@' or '\t' or '\r')) return value;
+        return decimal.TryParse(value, NumberStyles.Number, Inv, out _) ? value : "'" + value;
     }
 
     private static (DateTimeOffset? From, DateTimeOffset? To) Range(ReportQuery q) => (

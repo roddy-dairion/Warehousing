@@ -17,6 +17,7 @@ Status: **Draft for review (Phase 1)**
   * PDF layout is a **template editable in the admin screens** (logo, company details, header/footer, HTML with placeholders, preview before saving).
   * Delivery notes are sent from **dispatch@hellocherie.ch** (Microsoft 365, SMTP; password kept in secrets).
   * Q22 app identity (2026-10-12): app ID **`ch.hellocherie.warehouse`**, name "HelloCherie Warehousing". Mobile builds run on **Codemagic** (doc 11).
+  * Q17 hosting (2026-10-12): **cloud (AWS or Azure)**; the provider is chosen in Phase 9.
   * Q10 devices (2026-10-12): **both** ordinary phones (camera) and rugged Android scanners (built-in scanner in keyboard-wedge mode with Enter).
   * Phase 5 defaults (see doc 08): approval required and the creator/submitter cannot approve (Q6); picking assignment optional, any authorised operator may pick (Q7).
 * Phase 4 defaults (change any time, see doc 07): the adjustment submitter cannot approve it (Q6/Q8: operators request, managers approve all); minimum remaining shelf life 0 days (Q20); picked goods stay on their bin until shipped (Q19).
@@ -60,7 +61,7 @@ The remaining questions can be decided by the phase noted in Part B.
 | **5. Dispatch engine** ✅ 2026-10-12 (backend; screens in Phases 6–7) | Dispatch CRUD, state machine, approve/reserve, pick + barcode validation, discrepancies, ready, ship (close/backorder), deliver + POD, cancel, history, delivery-note PDF | Integration tests #2–#5, #7, #9 incl. concurrent ship / double-submit |
 | **6. Web UI** ✅ 2026-10-12 (see doc 09) | Dashboards, inventory, movements, receipts, adjustments, dispatch approval/picking/shipping, reports, audit views | Vitest unit tests; Playwright smoke tests |
 | **7. Mobile app** ✅ built 2026-10-12, device tests pending (see doc 10) | Spike: scanner on real devices **first**. Then login, warehouse select, search/scan, stock lookup, picking, receiving, ship confirm, recent activity | Android + iOS builds; physical-device scan test report |
-| **8. QA** | Full test run; security review (authz matrix, upload, CORS); concurrency soak test; offline behaviour check | Test report with actual results |
+| **8. QA** ✅ 2026-10-12 (automated; device checks open, see doc 12) | Full test run; security review (authz matrix, upload, CORS); concurrency soak test; offline behaviour check | Test report with actual results |
 | **9. Deployment** | Prod config & secrets (incl. SMTP password for dispatch@hellocherie.ch), Chromium on the server for PDFs, migrations, backups/restore drill, HTTPS, monitoring, app-store signing/distribution, handover guide | Runbook; no production deploy without explicit approval |
 
 Each phase ends with: build + tests run, docs updated, and a short report of what was done and what remains.

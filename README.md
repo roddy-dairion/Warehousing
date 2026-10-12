@@ -15,6 +15,7 @@ Web app (Angular + PrimeNG), warehouse mobile app (Ionic + Capacitor), ASP.NET C
   9. [Web interface (Phase 6)](docs/09-web-interface.md)
   10. [Warehouse mobile app (Phase 7)](docs/10-mobile-app.md)
   11. [Mobile builds with Codemagic](docs/11-mobile-builds-codemagic.md)
+  12. [QA report (Phase 8)](docs/12-qa-report.md)
 
 ## Local development
 
@@ -46,4 +47,5 @@ Only PostgreSQL runs in Docker. The API and the Angular apps run directly from V
 * Phase 5 (dispatch engine): done (backend). Dispatch workflow with approval and reservation, barcode-checked picking, close-short or backorder shipping, proof of delivery (photos, name, signature), packing slip and signed delivery note PDFs from editable templates, delivery note emailed to the customer. 170 backend tests.
 * Phase 6 (web interface): done. Dashboard, stock, receipts, adjustments, bin moves, the full dispatch workflow (scanner picking, shipping, delivery with photos and signature), reports with CSV, audit log, company settings and template editor. 178 backend and 42 frontend tests; browser smoke test in `tools/e2e/web_smoke.py`.
 * Phase 7 (warehouse mobile app): built and tested in a phone-sized browser. Scan products, cartons and bins (camera or scanner gun), stock lookup, guided picking with barcode checks, shipment confirmation, proof of delivery (photos and signature), receiving goods, recent activity. Android and iOS projects are ready; real-device testing (camera scanning under warehouse lighting) is still to do. Browser smoke test in `tools/e2e/mobile_smoke.py`.
-* Next: device tests for Phase 7, then Phase 8 (quality assurance).
+* Phase 8 (quality assurance): done for everything that can be automated. Authorization matrix over all 130 endpoints, branch isolation, concurrency soak, security review with 4 fixes, dependency audit. 198 backend and 52 frontend tests. Real-device scanning checks still open (doc 12 §6).
+* Next: Phase 9 (deployment to the cloud, AWS or Azure).
