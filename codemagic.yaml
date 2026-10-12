@@ -1,6 +1,8 @@
 # Codemagic CI for the warehouse mobile app (frontend/projects/mobile, Ionic + Capacitor).
 # Setup and first build: docs/11-mobile-builds-codemagic.md
 #
+# Artifact paths are absolute ($CM_BUILD_DIR = repository root) because the scripts run in working_directory: frontend.
+#
 # Workflows (all start manually from Codemagic: "Start new build" -> choose the workflow):
 #   android-test        Debug APK to install directly on Android phones/scanners. Free, no store account.
 #   ios-test-unsigned   Unsigned .ipa for a test iPhone, installed with a free Apple ID (e.g. Sideloadly). Free.
@@ -63,8 +65,9 @@ workflows:
         script: |
           cd projects/mobile/android
           ./gradlew assembleDebug -PversionCode=$BUILD_NUMBER -PversionName=$APP_VERSION
+          ls -la app/build/outputs/apk/debug
     artifacts:
-      - frontend/projects/mobile/android/app/build/outputs/apk/debug/*.apk
+      - $CM_BUILD_DIR/frontend/projects/mobile/android/app/build/outputs/apk/debug/*.apk
 
   ios-test-unsigned:
     name: iOS test build (unsigned, for free sideloading)
@@ -99,8 +102,9 @@ workflows:
           mkdir -p "$CM_BUILD_DIR/build/ipa/Payload"
           cp -R "$CM_BUILD_DIR/build/App.xcarchive/Products/Applications/App.app" "$CM_BUILD_DIR/build/ipa/Payload/"
           cd "$CM_BUILD_DIR/build/ipa" && zip -qr "HelloCherie-Warehouse-$APP_VERSION-$BUILD_NUMBER-unsigned.ipa" Payload
+          ls -la "$CM_BUILD_DIR/build/ipa"
     artifacts:
-      - build/ipa/*.ipa
+      - $CM_BUILD_DIR/build/ipa/*.ipa
 
   android-release:
     name: Android release (Google Play)
@@ -130,7 +134,7 @@ workflows:
           cd projects/mobile/android
           ./gradlew bundleRelease -PversionCode=$BUILD_NUMBER -PversionName=$APP_VERSION
     artifacts:
-      - frontend/projects/mobile/android/app/build/outputs/bundle/release/*.aab
+      - $CM_BUILD_DIR/frontend/projects/mobile/android/app/build/outputs/bundle/release/*.aab
     # publishing:
     #   google_play:
     #     credentials: $GOOGLE_PLAY_SERVICE_ACCOUNT_CREDENTIALS
@@ -170,7 +174,7 @@ workflows:
           cd projects/mobile/ios/App
           xcode-project build-ipa --workspace App.xcworkspace --scheme App
     artifacts:
-      - frontend/projects/mobile/ios/App/build/ios/ipa/*.ipa
+      - $CM_BUILD_DIR/frontend/projects/mobile/ios/App/build/ios/ipa/*.ipa
       - /tmp/xcodebuild_logs/*.log
     publishing:
       app_store_connect:
