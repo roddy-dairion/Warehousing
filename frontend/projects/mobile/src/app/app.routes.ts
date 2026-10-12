@@ -21,6 +21,11 @@ export const routes: Routes = [
         loadComponent: () => import('./pages/scan/scan.page').then((m) => m.ScanPage),
       },
       {
+        path: 'products/new',
+        canMatch: [permissionGuard(Permissions.ProductsManage)],
+        loadComponent: () => import('./pages/scan/new-product.page').then((m) => m.NewProductPage),
+      },
+      {
         path: 'products/:id',
         canMatch: [permissionGuard(Permissions.InventoryRead)],
         loadComponent: () => import('./pages/product-stock/product-stock.page').then((m) => m.ProductStockPage),

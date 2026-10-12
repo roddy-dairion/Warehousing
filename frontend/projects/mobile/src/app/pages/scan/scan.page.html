@@ -2,6 +2,9 @@
   <ion-toolbar>
     <ion-buttons slot="start"><ion-back-button defaultHref="/" /></ion-buttons>
     <ion-title>Scan</ion-title>
+    @if (canManageProducts) {
+      <ion-buttons slot="end"><ion-button routerLink="/products/new" aria-label="Add a product"><ion-icon slot="icon-only" name="add-outline" /></ion-button></ion-buttons>
+    }
   </ion-toolbar>
 </ion-header>
 
@@ -74,7 +77,7 @@
             <p>It is not a product barcode, a bin, or a SKU/name. Check the label, or ask a manager to add the barcode to the product.</p>
           }
         </div>
-        @if (canManageProducts) { <wh-unknown-code [code]="r.code" (done)="lookup($event)" /> }
+        @if (canManageProducts) { <wh-unknown-code [code]="r.code" (done)="lookup($event.code)" /> }
       }
     }
   } @else {

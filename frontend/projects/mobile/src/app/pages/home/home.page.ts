@@ -5,7 +5,7 @@ import {
   ViewWillEnter,
 } from '@ionic/angular';
 import { addIcons } from 'ionicons';
-import { barcodeOutline, cubeOutline, downloadOutline, listOutline, logOutOutline, swapHorizontalOutline, timeOutline } from 'ionicons/icons';
+import { addCircleOutline, barcodeOutline, cubeOutline, downloadOutline, listOutline, logOutOutline, swapHorizontalOutline, timeOutline } from 'ionicons/icons';
 import { AuthService, Permissions, ReportingApi, WarehouseContextService, WarehouseDashboardDto } from '@wh/shared';
 
 interface Action {
@@ -46,12 +46,13 @@ export class HomePage implements ViewWillEnter {
         label: 'Receive goods', hint: 'Count deliveries into stock', icon: 'download-outline', link: '/receipts', badge: this.dashboard()?.pendingReceipts,
         visible: can(Permissions.InventoryReceive, Permissions.InventoryReceivePost),
       },
+      { label: 'Add a product', hint: 'New product with its barcode', icon: 'add-circle-outline', link: '/products/new', visible: can(Permissions.ProductsManage) },
       { label: 'Recent activity', hint: 'Latest stock movements', icon: 'time-outline', link: '/activity', visible: can(Permissions.InventoryRead) },
     ].filter((a) => a.visible);
   });
 
   constructor() {
-    addIcons({ barcodeOutline, listOutline, downloadOutline, cubeOutline, logOutOutline, swapHorizontalOutline, timeOutline });
+    addIcons({ addCircleOutline, barcodeOutline, listOutline, downloadOutline, cubeOutline, logOutOutline, swapHorizontalOutline, timeOutline });
   }
 
   ionViewWillEnter(): void {

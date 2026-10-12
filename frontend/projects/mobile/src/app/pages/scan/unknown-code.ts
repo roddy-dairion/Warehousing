@@ -1,4 +1,4 @@
-import { Component, inject, input, output, signal } from '@angular/core';
+import { Component, inject, input, OnInit, output, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import {
   AlertController, IonButton, IonInput, IonItem, IonLabel, IonList, IonNote, IonSearchbar, IonSelect, IonSelectOption, IonSpinner, IonToggle,
@@ -40,7 +40,7 @@ type Mode = 'choose' | 'link' | 'create';
       }
       @case ('create') {
         <div class="wh-section form">
-          <h2>New product with barcode {{ code() }}</h2>
+          <h2>{{ code() ? 'New product with barcode ' + code() : 'New product' }}</h2>
           <ion-input label="SKU" labelPlacement="stacked" fill="outline" [(ngModel)]="sku" autocapitalize="characters" data-testid="new-sku" />
           <ion-input label="Name" labelPlacement="stacked" fill="outline" [(ngModel)]="name" autocapitalize="sentences" data-testid="new-name" />
           <ion-select label="Counted in" labelPlacement="stacked" fill="outline" interface="action-sheet" [(ngModel)]="baseUnitId" data-testid="new-unit">
@@ -52,7 +52,7 @@ type Mode = 'choose' | 'link' | 'create';
         </div>
         <div class="wh-actions">
           <ion-button expand="block" (click)="create()" [disabled]="busy() || !sku.trim() || !name.trim() || !baseUnitId" data-testid="new-save">Create product</ion-button>
-          <ion-button expand="block" fill="clear" (click)="mode.set('choose')">Back</ion-button>
+          @if (!createOnly()) { <ion-button expand="block" fill="clear" (click)="mode.set('choose')">Back</ion-button> }
         </div>
       }
     }
@@ -62,7 +62,7 @@ type Mode = 'choose' | 'link' | 'create';
     .hint { font-size: 0.85rem; margin: 0; }
   `,
 })
-export class UnknownCode {
+export class UnknownCode implements OnInit {
   private readonly products = inject(ProductsApi);
   private readonly catalog = inject(CatalogApi);
   private readonly feedback = inject(Feedback);
@@ -70,8 +70,10 @@ export class UnknownCode {
 
   /** The scanned code nobody knows yet. */
   readonly code = input.required<string>();
-  /** The barcode now belongs to a product: the page looks it up again. */
-  readonly done = output<string>();
+  /** Open directly on the "create product" form (the "Add a product" screen; the barcode is optional there). */
+  readonly createOnly = input(false);
+  /** The barcode now belongs to a product (or the product was created): the page shows it. */
+  readonly done = output<{ code: string; productId: string }>();
 
   protected readonly mode = signal<Mode>('choose');
   protected readonly busy = signal(false);
@@ -125,12 +127,16 @@ export class UnknownCode {
       }
       await this.products.addBarcode(product.id, this.code(), unitId, product.version);
       await this.feedback.success(`Barcode added to ${product.sku}.`);
-      this.done.emit(this.code());
+      this.done.emit({ code: this.code(), productId: product.id });
     } catch (e) {
       await this.feedback.error(e);
     } finally {
       this.busy.set(false);
     }
+  }
+
+  ngOnInit(): void {
+    if (this.createOnly()) void this.startCreate();
   }
 
   protected async startCreate(): Promise<void> {
@@ -151,10 +157,10 @@ export class UnknownCode {
     try {
       const p = await this.products.create({
         sku: this.sku.trim().toUpperCase(), name: this.name.trim(), baseUnitId: this.baseUnitId, isLotTracked: this.lotTracked,
-        hasExpiry: this.lotTracked && this.hasExpiry, barcodes: [{ value: this.code() }],
+        hasExpiry: this.lotTracked && this.hasExpiry, barcodes: this.code() ? [{ value: this.code() }] : [],
       });
       await this.feedback.success(`${p.sku} created.`);
-      this.done.emit(this.code());
+      this.done.emit({ code: this.code(), productId: p.id });
     } catch (e) {
       const err = ApiError.from(e);
       const fields = Object.values(err.fieldErrors).flat();

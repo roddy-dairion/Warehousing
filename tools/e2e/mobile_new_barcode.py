@@ -51,5 +51,21 @@ with sync_playwright() as p:
     pg.wait_for_timeout(2500)
     pg.screenshot(path=f"{OUT}/u5-linked.png")
     # 3. The same barcode on another product is refused by the server
+    # 3. "Add a product" from the home screen, with a scanned barcode
+    pg.goto(APP + "/")
+    pg.get_by_text("Add a product").click()
+    f = pg.locator("[data-testid=new-barcode] input"); f.fill("4006381333931"); f.press("Enter")
+    expect(pg.get_by_text("New product with barcode 4006381333931")).to_be_visible(timeout=10000)
+    pg.locator("[data-testid=new-sku] input").fill("pen-blue")
+    pg.locator("[data-testid=new-name] input").fill("Blue pen")
+    pg.screenshot(path=f"{OUT}/u6-add-product.png")
+    pg.locator("[data-testid=new-save]").click()
+    expect(pg.locator(".wh-big", has_text="PEN-BLUE")).to_be_visible(timeout=10000)
+    pg.wait_for_timeout(1500)
+    pg.screenshot(path=f"{OUT}/u7-added.png")
+    # An existing barcode is refused before the form is filled in
+    pg.goto(APP + "/products/new")
+    f = pg.locator("[data-testid=new-barcode] input"); f.fill("4006381333931"); f.press("Enter")
+    expect(pg.get_by_text("already belongs to PEN-BLUE")).to_be_visible(timeout=10000)
     print("errors:", errs)
     b.close()

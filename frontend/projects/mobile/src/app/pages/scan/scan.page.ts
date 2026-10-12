@@ -1,7 +1,9 @@
 import { Component, inject, signal, viewChild } from '@angular/core';
 import { RouterLink } from '@angular/router';
+import { addIcons } from 'ionicons';
+import { addOutline } from 'ionicons/icons';
 import {
-  IonBackButton, IonButton, IonButtons, IonContent, IonHeader, IonItem, IonLabel, IonList, IonNote, IonSpinner, IonTitle, IonToolbar, ViewDidEnter,
+  IonBackButton, IonButton, IonButtons, IonContent, IonHeader, IonIcon, IonItem, IonLabel, IonList, IonNote, IonSpinner, IonTitle, IonToolbar, ViewDidEnter,
 } from '@ionic/angular';
 import {
   ApiError, AuthService, BalanceDto, BarcodeLookupDto, InventoryApi, LocationDto, Permissions, ProductListItemDto, ProductsApi, ProductStockDto, qty,
@@ -24,7 +26,7 @@ type Result =
  */
 @Component({
   selector: 'wh-scan',
-  imports: [RouterLink, IonHeader, IonToolbar, IonTitle, IonButtons, IonBackButton, IonButton, IonContent, IonList, IonItem, IonLabel, IonNote, IonSpinner,
+  imports: [RouterLink, IonHeader, IonToolbar, IonTitle, IonButtons, IonBackButton, IonButton, IonIcon, IonContent, IonList, IonItem, IonLabel, IonNote, IonSpinner,
     BalanceList, ScanField, UnknownCode],
   templateUrl: './scan.page.html',
 })
@@ -42,6 +44,10 @@ export class ScanPage implements ViewDidEnter {
   protected readonly result = signal<Result | null>(null);
   protected readonly canSeeStock = this.auth.hasPermission(Permissions.InventoryRead);
   protected readonly canManageProducts = this.auth.hasPermission(Permissions.ProductsManage);
+
+  constructor() {
+    addIcons({ addOutline });
+  }
 
   ionViewDidEnter(): void {
     this.field().focus();
