@@ -13,7 +13,7 @@ using Microsoft.IdentityModel.Tokens;
 using Serilog;
 
 // Start-up logger until configuration is loaded (a plain logger, so several hosts can run in one process, e.g. tests).
-Log.Logger = new LoggerConfiguration().WriteTo.Console().CreateLogger();
+Log.Logger = new LoggerConfiguration().WriteTo.Console(formatProvider: System.Globalization.CultureInfo.InvariantCulture).CreateLogger();
 
 try
 {

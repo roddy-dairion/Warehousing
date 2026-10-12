@@ -140,15 +140,11 @@ public sealed class CompanyProfile : Entity, IAuditable
         RegistrationNumber = Text.Optional(registration, 60, "company.registration_invalid", "Registration number");
         VatNumber = Text.Optional(vat, 60, "company.vat_invalid", "VAT number");
         FooterText = Text.Optional(footer, 1000, "company.footer_invalid", "Footer");
-        try
-        {
-            TimeZoneInfo.FindSystemTimeZoneById(timeZone);
-        }
-        catch (Exception e) when (e is TimeZoneNotFoundException or InvalidTimeZoneException or ArgumentException)
+        if (!TimeZones.TryFind(timeZone, out _))
         {
             throw new DomainRuleException("company.time_zone_invalid", "Unknown time zone. Use an IANA name such as Indian/Mauritius or Europe/Zurich.");
         }
-        TimeZone = timeZone;
+        TimeZone = timeZone.Trim();
     }
 
     public void SetEmail(string subject, string body, string? bcc)

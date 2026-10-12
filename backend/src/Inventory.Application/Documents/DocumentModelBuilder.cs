@@ -32,7 +32,7 @@ public sealed class DocumentModelBuilder(IApplicationDbContext db, IFileStorage 
 
     public async Task<Dictionary<string, object?>> BuildAsync(Guid dispatchId, DocumentType type, CompanyProfile company, CancellationToken cancellationToken)
     {
-        var tz = TimeZoneInfo.FindSystemTimeZoneById(company.TimeZone);
+        var tz = Domain.Common.TimeZones.FindOrUtc(company.TimeZone);
         var d = await db.Dispatches.AsNoTracking().Include(x => x.Lines).SingleAsync(x => x.Id == dispatchId, cancellationToken);
         var warehouse = await db.Warehouses.AsNoTracking().SingleAsync(w => w.Id == d.WarehouseId, cancellationToken);
         var customer = await db.Customers.AsNoTracking().SingleAsync(c => c.Id == d.CustomerId, cancellationToken);
@@ -124,7 +124,7 @@ public sealed class DocumentModelBuilder(IApplicationDbContext db, IFileStorage 
     /// <summary>Example data for previews and template validation.</summary>
     public async Task<Dictionary<string, object?>> SampleAsync(DocumentType type, CompanyProfile company, CancellationToken cancellationToken)
     {
-        var tz = TimeZoneInfo.FindSystemTimeZoneById(company.TimeZone);
+        var tz = Domain.Common.TimeZones.FindOrUtc(company.TimeZone);
         var model = Common(company, type, tz, await LogoAsync(company, cancellationToken));
         model["warehouse"] = new Dictionary<string, object?> { ["code"] = "MAIN", ["name"] = "Main warehouse", ["address_lines"] = new List<object?> { "1 Warehouse Road", "Port Louis" }, ["phone"] = "+230 000 0000", ["email"] = null };
         model["customer"] = new Dictionary<string, object?> { ["reference"] = "CUST-001", ["name"] = "Example Customer Ltd", ["contact"] = "Jane Doe", ["phone"] = "+230 111 1111", ["email"] = "orders@example.com" };

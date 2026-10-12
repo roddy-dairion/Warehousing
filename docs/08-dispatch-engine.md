@@ -92,6 +92,10 @@ Dispatches are scoped to the warehouses the user can access. A dispatch in anoth
 * Set `Pdf:BrowserPath` to choose a specific browser. Set `Pdf:NoSandbox=true` when running as root in a container.
 * On the production server, install Chromium (for example `apt install chromium`). This is noted for Phase 9.
 
+### Time zones
+
+The company time zone accepts IANA names (`Indian/Mauritius`, `Europe/Zurich`) or Windows names (`Mauritius Standard Time`). This relies on ICU: the backend no longer runs in invariant-globalization mode. Windows includes ICU; Linux servers need the `libicu` package, which most distributions and the .NET Docker images already have.
+
 ### Email configuration (`Email` section)
 
 | Setting | Development | Production |

@@ -24,7 +24,7 @@ public sealed class FluidTemplateEngine : ITemplateEngine
         var options = new TemplateOptions
         {
             CultureInfo = CultureInfo.InvariantCulture,
-            TimeZone = TimeZoneInfo.FindSystemTimeZoneById(timeZone),
+            TimeZone = Inventory.Domain.Common.TimeZones.FindOrUtc(timeZone),
             MaxSteps = 200_000,
             MaxRecursion = 50,
         };

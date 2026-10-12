@@ -162,4 +162,22 @@ public sealed class DispatchDomainTests
         c.Update("HelloCherie", null, null, null, null, null, "dispatch@hellocherie.ch", null, null, null, null, "Europe/Zurich");
         c.TimeZone.ShouldBe("Europe/Zurich");
     }
+
+    [Theory]
+    [InlineData("Indian/Mauritius")]
+    [InlineData("Europe/Zurich")]
+    [InlineData("Mauritius Standard Time")]
+    [InlineData("W. Europe Standard Time")]
+    public void Time_zones_resolve_by_iana_or_windows_name(string id)
+    {
+        TimeZones.TryFind(id, out var zone).ShouldBeTrue();
+        zone.ShouldNotBe(TimeZoneInfo.Utc);
+    }
+
+    [Fact]
+    public void Unknown_time_zone_falls_back_to_utc_for_printing()
+    {
+        TimeZones.TryFind("Nowhere/Land", out _).ShouldBeFalse();
+        TimeZones.FindOrUtc("Nowhere/Land").ShouldBe(TimeZoneInfo.Utc);
+    }
 }
