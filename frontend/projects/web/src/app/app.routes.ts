@@ -32,6 +32,18 @@ export const routes: Routes = [
           { path: ':id', title: 'Goods receipt', loadComponent: () => import('./pages/receipts/receipt-edit').then((m) => m.ReceiptEdit) },
         ],
       },
+      {
+        path: 'purchasing',
+        canMatch: [permissionGuard(Permissions.PurchasingRead, Permissions.PurchasingManage)],
+        children: [
+          { path: '', pathMatch: 'full', redirectTo: 'orders' },
+          { path: 'orders', title: 'Purchase orders', loadComponent: () => import('./pages/purchasing/purchase-order-list').then((m) => m.PurchaseOrderList) },
+          { path: 'orders/new', title: 'New purchase order', canMatch: [permissionGuard(Permissions.PurchasingManage)], loadComponent: () => import('./pages/purchasing/purchase-order-edit').then((m) => m.PurchaseOrderEdit) },
+          { path: 'orders/:id', title: 'Purchase order', loadComponent: () => import('./pages/purchasing/purchase-order-edit').then((m) => m.PurchaseOrderEdit) },
+          { path: 'reorder', title: 'Reorder', loadComponent: () => import('./pages/purchasing/reorder-page').then((m) => m.ReorderPage) },
+          { path: 'suppliers', title: 'Suppliers', loadComponent: () => import('./pages/purchasing/supplier-list').then((m) => m.SupplierList) },
+        ],
+      },
       { path: 'inventory', title: 'Stock', canMatch: [permissionGuard(Permissions.InventoryRead)], loadComponent: () => import('./pages/inventory/stock-page').then((m) => m.StockPage) },
       {
         path: 'adjustments',

@@ -22,6 +22,12 @@ public sealed partial class Product : Entity, IAuditable
     public Guid? CategoryId { get; private set; }
     public Guid BaseUnitId { get; private set; }
     public decimal? MinStockQty { get; private set; }
+    /// <summary>Reordering: order up to this level (null = up to <see cref="MinStockQty"/>).</summary>
+    public decimal? MaxStockQty { get; private set; }
+    /// <summary>Reordering: the supplier normally ordered from.</summary>
+    public Guid? DefaultSupplierId { get; private set; }
+    /// <summary>Reordering: unit of measure ordered in (the base unit or one of <see cref="Units"/>); suggestions round up to whole units.</summary>
+    public Guid? PurchaseUnitId { get; private set; }
     public bool IsLotTracked { get; private set; }
     public bool HasExpiry { get; private set; }
     public int? ShelfLifeDays { get; private set; }
@@ -83,6 +89,23 @@ public sealed partial class Product : Entity, IAuditable
 
     public void SetImage(Guid? imageId) => ImageId = imageId;
 
+    /// <summary>Reorder settings. <paramref name="purchaseUnitId"/> is a unit of measure: the base unit or a pack unit of this product.</summary>
+    public void SetReorder(decimal? maxStockQty, Guid? defaultSupplierId, Guid? purchaseUnitId)
+    {
+        if (maxStockQty < 0) throw new DomainRuleException("product.max_stock_invalid", "Order-up-to level cannot be negative.");
+        if (maxStockQty is not null && MinStockQty is not null && maxStockQty < MinStockQty)
+        {
+            throw new DomainRuleException("product.max_below_min", "The order-up-to level must be at least the minimum stock.");
+        }
+        if (purchaseUnitId is { } unitId && unitId != BaseUnitId && _units.All(u => u.UnitId != unitId))
+        {
+            throw new DomainRuleException("product.purchase_unit_invalid", "The purchase unit must be the base unit or one of the product's pack units.");
+        }
+        MaxStockQty = maxStockQty;
+        DefaultSupplierId = defaultSupplierId;
+        PurchaseUnitId = purchaseUnitId == BaseUnitId ? null : purchaseUnitId;
+    }
+
     public void Activate() => IsActive = true;
 
     public void Deactivate() => IsActive = false;
@@ -111,6 +134,7 @@ public sealed partial class Product : Entity, IAuditable
             throw new DomainRuleException("product.unit_has_barcodes", "Remove the barcodes of this pack unit first.", isConflict: true);
         }
         _units.Remove(unit);
+        if (PurchaseUnitId == unit.UnitId) PurchaseUnitId = null;
     }
 
     // ---- Barcodes -------------------------------------------------------------------------

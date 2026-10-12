@@ -175,6 +175,11 @@ export class ReceiptPage {
     return this.bins().find((b) => b.id === line.locationId)?.code ?? '';
   }
 
+  /** Code of the unit the line is counted in (expected quantities are in the same unit). */
+  protected unitCode(line: ReceiptLineForm): string {
+    return line.product.units.find((x) => x.id === line.productUnitId)?.unitCode ?? line.product.baseUnitCode;
+  }
+
   protected unitLabel(line: ReceiptLineForm): string {
     const u = line.product.units.find((x) => x.id === line.productUnitId);
     return u ? `${u.unitCode} (×${qty(u.factorToBase)})` : line.product.baseUnitCode;

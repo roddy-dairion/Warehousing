@@ -6,6 +6,7 @@ using Inventory.Domain.Dispatches;
 using Inventory.Domain.Documents;
 using Inventory.Domain.Inventory;
 using Inventory.Domain.Products;
+using Inventory.Domain.Purchasing;
 using Inventory.Domain.Warehouses;
 using Inventory.Infrastructure.Identity;
 using Microsoft.AspNetCore.Identity;
@@ -35,6 +36,8 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options)
     public DbSet<InventoryMovement> InventoryMovements => Set<InventoryMovement>();
     public DbSet<StockReservation> StockReservations => Set<StockReservation>();
     public DbSet<GoodsReceipt> GoodsReceipts => Set<GoodsReceipt>();
+    public DbSet<Supplier> Suppliers => Set<Supplier>();
+    public DbSet<PurchaseOrder> PurchaseOrders => Set<PurchaseOrder>();
     public DbSet<StockAdjustment> StockAdjustments => Set<StockAdjustment>();
     public DbSet<StockTransfer> StockTransfers => Set<StockTransfer>();
     public DbSet<Dispatch> Dispatches => Set<Dispatch>();

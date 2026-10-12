@@ -803,6 +803,15 @@ namespace Inventory.Infrastructure.Persistence.Migrations
                         .HasColumnType("uuid")
                         .HasColumnName("logo_file_id");
 
+                    b.Property<DateOnly?>("LowStockAlertCheckedOn")
+                        .HasColumnType("date")
+                        .HasColumnName("low_stock_alert_checked_on");
+
+                    b.Property<string>("LowStockAlertEmails")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)")
+                        .HasColumnName("low_stock_alert_emails");
+
                     b.Property<string>("Name")
                         .IsRequired()
                         .HasMaxLength(200)
@@ -1184,6 +1193,10 @@ namespace Inventory.Infrastructure.Persistence.Migrations
                         .HasColumnType("uuid")
                         .HasColumnName("posted_by");
 
+                    b.Property<Guid?>("PurchaseOrderId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("purchase_order_id");
+
                     b.Property<DateOnly>("ReceiptDate")
                         .HasColumnType("date")
                         .HasColumnName("receipt_date");
@@ -1242,6 +1255,9 @@ namespace Inventory.Infrastructure.Persistence.Migrations
                         .IsUnique()
                         .HasDatabaseName("ix_goods_receipts_number");
 
+                    b.HasIndex("PurchaseOrderId")
+                        .HasDatabaseName("ix_goods_receipts_purchase_order_id");
+
                     b.HasIndex("WarehouseId", "CreatedAt")
                         .HasDatabaseName("ix_goods_receipts_warehouse_id_created_at");
 
@@ -1298,6 +1314,10 @@ namespace Inventory.Infrastructure.Persistence.Migrations
                         .HasColumnType("uuid")
                         .HasColumnName("product_unit_id");
 
+                    b.Property<Guid?>("PurchaseOrderLineId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("purchase_order_line_id");
+
                     b.Property<decimal>("Quantity")
                         .HasPrecision(18, 3)
                         .HasColumnType("numeric(18,3)")
@@ -1318,6 +1338,9 @@ namespace Inventory.Infrastructure.Persistence.Migrations
 
                     b.HasIndex("ProductId")
                         .HasDatabaseName("ix_goods_receipt_lines_product_id");
+
+                    b.HasIndex("PurchaseOrderLineId")
+                        .HasDatabaseName("ix_goods_receipt_lines_purchase_order_line_id");
 
                     b.HasIndex("ReceiptId", "LineNo")
                         .IsUnique()
@@ -1987,6 +2010,10 @@ namespace Inventory.Infrastructure.Persistence.Migrations
                         .HasColumnType("uuid")
                         .HasColumnName("created_by");
 
+                    b.Property<Guid?>("DefaultSupplierId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("default_supplier_id");
+
                     b.Property<string>("Description")
                         .HasMaxLength(2000)
                         .HasColumnType("character varying(2000)")
@@ -2008,6 +2035,11 @@ namespace Inventory.Infrastructure.Persistence.Migrations
                         .HasColumnType("boolean")
                         .HasColumnName("is_lot_tracked");
 
+                    b.Property<decimal?>("MaxStockQty")
+                        .HasPrecision(18, 3)
+                        .HasColumnType("numeric(18,3)")
+                        .HasColumnName("max_stock_qty");
+
                     b.Property<decimal?>("MinStockQty")
                         .HasPrecision(18, 3)
                         .HasColumnType("numeric(18,3)")
@@ -2018,6 +2050,10 @@ namespace Inventory.Infrastructure.Persistence.Migrations
                         .HasMaxLength(200)
                         .HasColumnType("character varying(200)")
                         .HasColumnName("name");
+
+                    b.Property<Guid?>("PurchaseUnitId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("purchase_unit_id");
 
                     b.Property<int?>("ShelfLifeDays")
                         .HasColumnType("integer")
@@ -2052,11 +2088,17 @@ namespace Inventory.Infrastructure.Persistence.Migrations
                     b.HasIndex("CategoryId")
                         .HasDatabaseName("ix_products_category_id");
 
+                    b.HasIndex("DefaultSupplierId")
+                        .HasDatabaseName("ix_products_default_supplier_id");
+
                     b.HasIndex("ImageId")
                         .HasDatabaseName("ix_products_image_id");
 
                     b.HasIndex("Name")
                         .HasDatabaseName("ix_products_name");
+
+                    b.HasIndex("PurchaseUnitId")
+                        .HasDatabaseName("ix_products_purchase_unit_id");
 
                     b.HasIndex("Sku")
                         .IsUnique()
@@ -2065,6 +2107,8 @@ namespace Inventory.Infrastructure.Persistence.Migrations
                     b.ToTable("products", null, t =>
                         {
                             t.HasCheckConstraint("ck_products_expiry_needs_lot", "NOT has_expiry OR is_lot_tracked");
+
+                            t.HasCheckConstraint("ck_products_max_stock", "max_stock_qty IS NULL OR max_stock_qty >= 0");
 
                             t.HasCheckConstraint("ck_products_min_stock", "min_stock_qty IS NULL OR min_stock_qty >= 0");
 
@@ -2273,6 +2317,284 @@ namespace Inventory.Infrastructure.Persistence.Migrations
                     b.ToTable("units_of_measure", null, t =>
                         {
                             t.HasCheckConstraint("ck_units_decimals", "decimals BETWEEN 0 AND 3");
+                        });
+                });
+
+            modelBuilder.Entity("Inventory.Domain.Purchasing.PurchaseOrder", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<string>("CloseReason")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)")
+                        .HasColumnName("close_reason");
+
+                    b.Property<DateTimeOffset?>("ClosedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("closed_at");
+
+                    b.Property<Guid?>("ClosedBy")
+                        .HasColumnType("uuid")
+                        .HasColumnName("closed_by");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<Guid?>("CreatedBy")
+                        .HasColumnType("uuid")
+                        .HasColumnName("created_by");
+
+                    b.Property<DateOnly?>("ExpectedDate")
+                        .HasColumnType("date")
+                        .HasColumnName("expected_date");
+
+                    b.Property<string>("Notes")
+                        .HasMaxLength(2000)
+                        .HasColumnType("character varying(2000)")
+                        .HasColumnName("notes");
+
+                    b.Property<string>("Number")
+                        .IsRequired()
+                        .HasMaxLength(40)
+                        .HasColumnType("character varying(40)")
+                        .HasColumnName("number");
+
+                    b.Property<DateOnly>("OrderDate")
+                        .HasColumnType("date")
+                        .HasColumnName("order_date");
+
+                    b.Property<DateTimeOffset?>("OrderedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("ordered_at");
+
+                    b.Property<Guid?>("OrderedBy")
+                        .HasColumnType("uuid")
+                        .HasColumnName("ordered_by");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(24)
+                        .HasColumnType("character varying(24)")
+                        .HasColumnName("status");
+
+                    b.Property<Guid>("SupplierId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("supplier_id");
+
+                    b.Property<string>("SupplierReference")
+                        .HasMaxLength(60)
+                        .HasColumnType("character varying(60)")
+                        .HasColumnName("supplier_reference");
+
+                    b.Property<DateTimeOffset>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at");
+
+                    b.Property<Guid?>("UpdatedBy")
+                        .HasColumnType("uuid")
+                        .HasColumnName("updated_by");
+
+                    b.Property<Guid>("WarehouseId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("warehouse_id");
+
+                    b.Property<uint>("xmin")
+                        .IsConcurrencyToken()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("xid")
+                        .HasColumnName("xmin");
+
+                    b.HasKey("Id")
+                        .HasName("pk_purchase_orders");
+
+                    b.HasIndex("Number")
+                        .IsUnique()
+                        .HasDatabaseName("ix_purchase_orders_number");
+
+                    b.HasIndex("SupplierId")
+                        .HasDatabaseName("ix_purchase_orders_supplier_id");
+
+                    b.HasIndex("WarehouseId", "CreatedAt")
+                        .HasDatabaseName("ix_purchase_orders_warehouse_id_created_at");
+
+                    b.HasIndex("WarehouseId", "Status")
+                        .HasDatabaseName("ix_purchase_orders_warehouse_id_status");
+
+                    b.ToTable("purchase_orders", (string)null);
+                });
+
+            modelBuilder.Entity("Inventory.Domain.Purchasing.PurchaseOrderLine", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<decimal>("EnteredQuantity")
+                        .HasPrecision(18, 3)
+                        .HasColumnType("numeric(18,3)")
+                        .HasColumnName("entered_quantity");
+
+                    b.Property<int>("LineNo")
+                        .HasColumnType("integer")
+                        .HasColumnName("line_no");
+
+                    b.Property<string>("Notes")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)")
+                        .HasColumnName("notes");
+
+                    b.Property<Guid>("ProductId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("product_id");
+
+                    b.Property<Guid?>("ProductUnitId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("product_unit_id");
+
+                    b.Property<Guid>("PurchaseOrderId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("purchase_order_id");
+
+                    b.Property<decimal>("Quantity")
+                        .HasPrecision(18, 3)
+                        .HasColumnType("numeric(18,3)")
+                        .HasColumnName("quantity");
+
+                    b.Property<decimal>("ReceivedQuantity")
+                        .HasPrecision(18, 3)
+                        .HasColumnType("numeric(18,3)")
+                        .HasColumnName("received_quantity");
+
+                    b.HasKey("Id")
+                        .HasName("pk_purchase_order_lines");
+
+                    b.HasIndex("ProductId")
+                        .HasDatabaseName("ix_purchase_order_lines_product_id");
+
+                    b.HasIndex("PurchaseOrderId", "LineNo")
+                        .IsUnique()
+                        .HasDatabaseName("ix_purchase_order_lines_purchase_order_id_line_no");
+
+                    b.HasIndex("PurchaseOrderId", "ProductId")
+                        .IsUnique()
+                        .HasDatabaseName("ix_purchase_order_lines_purchase_order_id_product_id");
+
+                    b.ToTable("purchase_order_lines", null, t =>
+                        {
+                            t.HasCheckConstraint("ck_purchase_order_lines_quantity", "quantity > 0 AND entered_quantity > 0");
+
+                            t.HasCheckConstraint("ck_purchase_order_lines_received", "received_quantity >= 0");
+                        });
+                });
+
+            modelBuilder.Entity("Inventory.Domain.Purchasing.Supplier", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<string>("AddressLine1")
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)")
+                        .HasColumnName("address_line1");
+
+                    b.Property<string>("AddressLine2")
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)")
+                        .HasColumnName("address_line2");
+
+                    b.Property<string>("City")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)")
+                        .HasColumnName("city");
+
+                    b.Property<string>("Code")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("character varying(32)")
+                        .HasColumnName("code");
+
+                    b.Property<string>("ContactName")
+                        .HasMaxLength(120)
+                        .HasColumnType("character varying(120)")
+                        .HasColumnName("contact_name");
+
+                    b.Property<string>("Country")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)")
+                        .HasColumnName("country");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<Guid?>("CreatedBy")
+                        .HasColumnType("uuid")
+                        .HasColumnName("created_by");
+
+                    b.Property<string>("Email")
+                        .HasMaxLength(256)
+                        .HasColumnType("character varying(256)")
+                        .HasColumnName("email");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("boolean")
+                        .HasColumnName("is_active");
+
+                    b.Property<int?>("LeadTimeDays")
+                        .HasColumnType("integer")
+                        .HasColumnName("lead_time_days");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)")
+                        .HasColumnName("name");
+
+                    b.Property<string>("Notes")
+                        .HasMaxLength(2000)
+                        .HasColumnType("character varying(2000)")
+                        .HasColumnName("notes");
+
+                    b.Property<string>("Phone")
+                        .HasMaxLength(40)
+                        .HasColumnType("character varying(40)")
+                        .HasColumnName("phone");
+
+                    b.Property<DateTimeOffset>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at");
+
+                    b.Property<Guid?>("UpdatedBy")
+                        .HasColumnType("uuid")
+                        .HasColumnName("updated_by");
+
+                    b.Property<uint>("xmin")
+                        .IsConcurrencyToken()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("xid")
+                        .HasColumnName("xmin");
+
+                    b.HasKey("Id")
+                        .HasName("pk_suppliers");
+
+                    b.HasIndex("Code")
+                        .IsUnique()
+                        .HasDatabaseName("ix_suppliers_code");
+
+                    b.HasIndex("Name")
+                        .HasDatabaseName("ix_suppliers_name");
+
+                    b.ToTable("suppliers", null, t =>
+                        {
+                            t.HasCheckConstraint("ck_suppliers_code_upper", "code = upper(code)");
+
+                            t.HasCheckConstraint("ck_suppliers_lead_time", "lead_time_days IS NULL OR lead_time_days BETWEEN 0 AND 365");
                         });
                 });
 
@@ -3185,6 +3507,12 @@ namespace Inventory.Infrastructure.Persistence.Migrations
 
             modelBuilder.Entity("Inventory.Domain.Inventory.GoodsReceipt", b =>
                 {
+                    b.HasOne("Inventory.Domain.Purchasing.PurchaseOrder", null)
+                        .WithMany()
+                        .HasForeignKey("PurchaseOrderId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .HasConstraintName("fk_goods_receipts_purchase_orders_purchase_order_id");
+
                     b.HasOne("Inventory.Domain.Warehouses.Warehouse", null)
                         .WithMany()
                         .HasForeignKey("WarehouseId")
@@ -3214,6 +3542,12 @@ namespace Inventory.Infrastructure.Persistence.Migrations
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired()
                         .HasConstraintName("fk_goods_receipt_lines_products_product_id");
+
+                    b.HasOne("Inventory.Domain.Purchasing.PurchaseOrderLine", null)
+                        .WithMany()
+                        .HasForeignKey("PurchaseOrderLineId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .HasConstraintName("fk_goods_receipt_lines_purchase_order_line_purchase_order_line");
 
                     b.HasOne("Inventory.Domain.Inventory.GoodsReceipt", null)
                         .WithMany("Lines")
@@ -3386,11 +3720,23 @@ namespace Inventory.Infrastructure.Persistence.Migrations
                         .OnDelete(DeleteBehavior.Restrict)
                         .HasConstraintName("fk_products_product_categories_category_id");
 
+                    b.HasOne("Inventory.Domain.Purchasing.Supplier", null)
+                        .WithMany()
+                        .HasForeignKey("DefaultSupplierId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .HasConstraintName("fk_products_suppliers_default_supplier_id");
+
                     b.HasOne("Inventory.Domain.Files.StoredFile", null)
                         .WithMany()
                         .HasForeignKey("ImageId")
                         .OnDelete(DeleteBehavior.SetNull)
                         .HasConstraintName("fk_products_stored_files_image_id");
+
+                    b.HasOne("Inventory.Domain.Products.UnitOfMeasure", null)
+                        .WithMany()
+                        .HasForeignKey("PurchaseUnitId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .HasConstraintName("fk_products_units_of_measure_purchase_unit_id");
                 });
 
             modelBuilder.Entity("Inventory.Domain.Products.ProductBarcode", b =>
@@ -3433,6 +3779,40 @@ namespace Inventory.Infrastructure.Persistence.Migrations
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired()
                         .HasConstraintName("fk_product_units_units_of_measure_unit_id");
+                });
+
+            modelBuilder.Entity("Inventory.Domain.Purchasing.PurchaseOrder", b =>
+                {
+                    b.HasOne("Inventory.Domain.Purchasing.Supplier", null)
+                        .WithMany()
+                        .HasForeignKey("SupplierId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("fk_purchase_orders_suppliers_supplier_id");
+
+                    b.HasOne("Inventory.Domain.Warehouses.Warehouse", null)
+                        .WithMany()
+                        .HasForeignKey("WarehouseId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("fk_purchase_orders_warehouses_warehouse_id");
+                });
+
+            modelBuilder.Entity("Inventory.Domain.Purchasing.PurchaseOrderLine", b =>
+                {
+                    b.HasOne("Inventory.Domain.Products.Product", null)
+                        .WithMany()
+                        .HasForeignKey("ProductId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("fk_purchase_order_lines_products_product_id");
+
+                    b.HasOne("Inventory.Domain.Purchasing.PurchaseOrder", null)
+                        .WithMany("Lines")
+                        .HasForeignKey("PurchaseOrderId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("fk_purchase_order_lines_purchase_orders_purchase_order_id");
                 });
 
             modelBuilder.Entity("Inventory.Domain.Warehouses.WarehouseLocation", b =>
@@ -3588,6 +3968,11 @@ namespace Inventory.Infrastructure.Persistence.Migrations
                     b.Navigation("Barcodes");
 
                     b.Navigation("Units");
+                });
+
+            modelBuilder.Entity("Inventory.Domain.Purchasing.PurchaseOrder", b =>
+                {
+                    b.Navigation("Lines");
                 });
 #pragma warning restore 612, 618
         }

@@ -5,6 +5,7 @@ using Inventory.Domain.Dispatches;
 using Inventory.Domain.Documents;
 using Inventory.Domain.Inventory;
 using Inventory.Domain.Products;
+using Inventory.Domain.Purchasing;
 using Inventory.Domain.Warehouses;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.ChangeTracking;
@@ -39,6 +40,8 @@ public interface IApplicationDbContext
     public DbSet<DispatchDocument> DispatchDocuments { get; }
     public DbSet<CompanyProfile> CompanyProfiles { get; }
     public DbSet<EmailMessage> EmailMessages { get; }
+    DbSet<Supplier> Suppliers { get; }
+    DbSet<PurchaseOrder> PurchaseOrders { get; }
 
     DatabaseFacade Database { get; }
 

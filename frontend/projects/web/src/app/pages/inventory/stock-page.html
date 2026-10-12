@@ -44,6 +44,7 @@
               <th class="num" pSortableColumn="reserved">Reserved <p-sortIcon field="reserved" /></th>
               <th class="num" pSortableColumn="available">Available <p-sortIcon field="available" /></th>
               <th class="num" pSortableColumn="sellable">Sellable <p-sortIcon field="sellable" /></th>
+              <th class="num">On order</th>
               <th class="num">Min.</th>
               <th>Unit</th>
             </tr>
@@ -56,12 +57,13 @@
               <td class="num">{{ qty(r.reserved) }}</td>
               <td class="num strong">{{ qty(r.available) }}</td>
               <td class="num">{{ qty(r.sellable) }}</td>
+              <td class="num">{{ r.onOrder ? qty(r.onOrder) : '—' }}</td>
               <td class="num muted">{{ qty(r.minStockQty) }}</td>
               <td>{{ r.baseUnitCode }}</td>
             </tr>
           </ng-template>
           <ng-template #emptymessage>
-            <tr><td colspan="8" class="empty">{{ lowOnly ? 'No products are below their minimum stock.' : 'No stock yet. Post a goods receipt to bring stock in.' }}</td></tr>
+            <tr><td colspan="9" class="empty">{{ lowOnly ? 'No products are below their minimum stock.' : 'No stock yet. Post a goods receipt to bring stock in.' }}</td></tr>
           </ng-template>
         </p-table>
       }

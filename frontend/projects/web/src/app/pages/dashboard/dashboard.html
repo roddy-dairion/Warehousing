@@ -96,6 +96,18 @@
         </div>
       }
 
+      @if (d.purchasing; as pu) {
+        <div class="panel">
+          <div class="panel-header"><h2>Purchasing</h2><a routerLink="/purchasing/orders">Purchase orders</a></div>
+          <div class="figures">
+            <a [class.warn]="pu.toReorder > 0" routerLink="/purchasing/reorder"><span class="n">{{ pu.toReorder }}</span><span>products to reorder</span></a>
+            <a routerLink="/purchasing/orders" [queryParams]="{ open: 1 }"><span class="n">{{ pu.open }}</span><span>open orders</span></a>
+            <a [class.warn]="pu.overdue > 0" routerLink="/purchasing/orders" [queryParams]="{ open: 1 }"><span class="n">{{ pu.overdue }}</span><span>overdue</span></a>
+            <a routerLink="/purchasing/orders" [queryParams]="{ status: 'draft' }"><span class="n">{{ pu.draft }}</span><span>draft orders</span></a>
+          </div>
+        </div>
+      }
+
       @if (d.recentMovements; as moves) {
         <div class="panel wide">
           <div class="panel-header"><h2>Recent stock movements</h2><a routerLink="/inventory" [queryParams]="{ tab: 'movements' }">All movements</a></div>

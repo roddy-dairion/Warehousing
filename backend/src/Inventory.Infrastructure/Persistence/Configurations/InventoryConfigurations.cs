@@ -119,6 +119,8 @@ internal sealed class GoodsReceiptConfiguration : IEntityTypeConfiguration<Goods
         b.Property(x => x.ReversalReason).HasMaxLength(500);
         b.HasIndex(x => new { x.WarehouseId, x.CreatedAt });
         b.HasOne<Warehouse>().WithMany().HasForeignKey(x => x.WarehouseId).OnDelete(DeleteBehavior.Restrict);
+        b.HasOne<Inventory.Domain.Purchasing.PurchaseOrder>().WithMany().HasForeignKey(x => x.PurchaseOrderId).OnDelete(DeleteBehavior.Restrict);
+        b.HasIndex(x => x.PurchaseOrderId);
         b.HasMany(x => x.Lines).WithOne().HasForeignKey(x => x.ReceiptId).OnDelete(DeleteBehavior.Cascade);
         b.Navigation(x => x.Lines).UsePropertyAccessMode(PropertyAccessMode.Field);
         b.HasXminVersion();
@@ -142,6 +144,8 @@ internal sealed class GoodsReceiptLineConfiguration : IEntityTypeConfiguration<G
         b.HasOne<Product>().WithMany().HasForeignKey(x => x.ProductId).OnDelete(DeleteBehavior.Restrict);
         b.HasOne<WarehouseLocation>().WithMany().HasForeignKey(x => x.LocationId).OnDelete(DeleteBehavior.Restrict);
         b.HasOne<ProductLot>().WithMany().HasForeignKey(x => x.LotId).OnDelete(DeleteBehavior.Restrict);
+        b.HasOne<Inventory.Domain.Purchasing.PurchaseOrderLine>().WithMany().HasForeignKey(x => x.PurchaseOrderLineId).OnDelete(DeleteBehavior.Restrict);
+        b.HasIndex(x => x.PurchaseOrderLineId);
     }
 }
 

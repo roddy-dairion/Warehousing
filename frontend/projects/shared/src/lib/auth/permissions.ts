@@ -22,6 +22,8 @@ export const Permissions = {
   DispatchesShip: 'dispatches.ship',
   DispatchesDeliver: 'dispatches.deliver',
   DispatchesCancel: 'dispatches.cancel',
+  PurchasingRead: 'purchasing.read',
+  PurchasingManage: 'purchasing.manage',
   ReportsRead: 'reports.read',
   AuditRead: 'audit.read',
 } as const;

@@ -59,3 +59,7 @@ Webcam scanning in the browser is not included. Camera scanning is in the mobile
 
 * The PDF preview uses the browser's PDF viewer (headless test browsers show a blank frame; normal Chrome, Edge, Firefox and Safari show the PDF).
 * "Start picking" assigns the dispatch to the current user. Assigning it to another operator is supported by the API but not yet offered in the web UI.
+
+## Purchasing (added 2026-10-12)
+
+Purchasing → Reorder, Purchase orders and Suppliers; reorder settings on the product page; "On order" in the stock overview; a Purchasing panel on the dashboard. See [doc 13](13-purchasing.md).

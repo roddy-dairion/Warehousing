@@ -190,6 +190,7 @@ internal sealed class CompanyProfileConfiguration : IEntityTypeConfiguration<Com
         b.Property(x => x.DeliveryEmailSubject).HasMaxLength(200);
         b.Property(x => x.DeliveryEmailBody).HasMaxLength(5000);
         b.Property(x => x.DeliveryEmailBcc).HasMaxLength(500);
+        b.Property(x => x.LowStockAlertEmails).HasMaxLength(500);
         b.HasOne<StoredFile>().WithMany().HasForeignKey(x => x.LogoFileId).OnDelete(DeleteBehavior.SetNull);
         b.HasXminVersion();
     }

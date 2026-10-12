@@ -26,6 +26,14 @@ export const NAVIGATION: NavGroup[] = [
     ],
   },
   {
+    label: 'Purchasing',
+    items: [
+      { label: 'Reorder', icon: 'pi pi-lightbulb', route: '/purchasing/reorder', permissions: [Permissions.PurchasingRead, Permissions.PurchasingManage] },
+      { label: 'Purchase orders', icon: 'pi pi-shopping-cart', route: '/purchasing/orders', permissions: [Permissions.PurchasingRead, Permissions.PurchasingManage] },
+      { label: 'Suppliers', icon: 'pi pi-briefcase', route: '/purchasing/suppliers', permissions: [Permissions.PurchasingRead, Permissions.PurchasingManage] },
+    ],
+  },
+  {
     label: 'Master data',
     items: [
       { label: 'Products', icon: 'pi pi-tags', route: '/products', permissions: [Permissions.ProductsRead] },

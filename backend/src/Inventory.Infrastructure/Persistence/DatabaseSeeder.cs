@@ -43,8 +43,9 @@ public sealed class DatabaseSeeder(
 
     public async Task SeedAsync(CancellationToken cancellationToken)
     {
-        await SyncPermissionsAsync(cancellationToken);
+        var added = await SyncPermissionsAsync(cancellationToken);
         await EnsureRolesAsync(cancellationToken);
+        await GrantNewPermissionsAsync(added, cancellationToken);
         await EnsureWarehouseAsync(cancellationToken);
         await EnsureSystemLocationsAsync(cancellationToken);
         await EnsureUnitsAsync(cancellationToken);
@@ -71,8 +72,10 @@ public sealed class DatabaseSeeder(
         await db.SaveChangesAsync(cancellationToken);
     }
 
-    private async Task SyncPermissionsAsync(CancellationToken cancellationToken)
+    /// <returns>Permission codes that did not exist yet (added by a new release).</returns>
+    private async Task<List<string>> SyncPermissionsAsync(CancellationToken cancellationToken)
     {
+        var added = new List<string>();
         var existing = await db.Permissions.ToDictionaryAsync(p => p.Code, cancellationToken);
         foreach (var (code, description) in Permissions.All)
         {
@@ -83,9 +86,31 @@ public sealed class DatabaseSeeder(
             else
             {
                 db.Permissions.Add(new Permission { Code = code, Description = description });
+                added.Add(code);
             }
         }
         await db.SaveChangesAsync(cancellationToken);
+        return added;
+    }
+
+    /// <summary>
+    /// A permission introduced by a new release is granted once to the built-in roles that have it by default, so existing
+    /// installations get the new feature. Later changes an administrator makes to the roles are never overwritten.
+    /// </summary>
+    private async Task GrantNewPermissionsAsync(List<string> added, CancellationToken cancellationToken)
+    {
+        if (added.Count == 0) return;
+        foreach (var definition in Roles.Defaults)
+        {
+            var role = await roles.FindByNameAsync(definition.Code);
+            if (role is null) continue;
+            var has = await db.RolePermissions.Where(rp => rp.RoleId == role.Id).Select(rp => rp.PermissionCode).ToListAsync(cancellationToken);
+            var grant = definition.Permissions.Intersect(added).Except(has).ToList();
+            if (grant.Count == 0) continue;
+            db.RolePermissions.AddRange(grant.Select(p => new RolePermission { RoleId = role.Id, PermissionCode = p }));
+            await db.SaveChangesAsync(cancellationToken);
+            logger.LogInformation("Granted new permissions {Permissions} to role {Role}", string.Join(", ", grant), definition.Code);
+        }
     }
 
     /// <summary>Creates missing built-in roles with their default permissions. Existing roles are left as configured.</summary>

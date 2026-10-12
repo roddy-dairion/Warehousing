@@ -6,6 +6,7 @@ using Inventory.Application.Documents;
 using Inventory.Application.Imports;
 using Inventory.Application.Inventory;
 using Inventory.Application.Products;
+using Inventory.Application.Purchasing;
 using Inventory.Application.Reporting;
 using Inventory.Application.Warehouses;
 using Microsoft.Extensions.DependencyInjection;
@@ -34,6 +35,10 @@ public static class DependencyInjection
         services.AddScoped<LotService>();
         services.AddScoped<InventoryQueries>();
         services.AddScoped<ReconciliationService>();
+
+        services.AddScoped<SupplierService>();
+        services.AddScoped<PurchaseOrderService>();
+        services.AddScoped<ReorderService>();
 
         services.AddScoped<DispatchService>();
         services.AddScoped<PickingService>();

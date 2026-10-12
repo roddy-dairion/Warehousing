@@ -111,6 +111,7 @@ internal sealed class ProductConfiguration : IEntityTypeConfiguration<Product>
             t.HasCheckConstraint("ck_products_sku_upper", "sku = upper(sku)");
             t.HasCheckConstraint("ck_products_min_stock", "min_stock_qty IS NULL OR min_stock_qty >= 0");
             t.HasCheckConstraint("ck_products_expiry_needs_lot", "NOT has_expiry OR is_lot_tracked");
+            t.HasCheckConstraint("ck_products_max_stock", "max_stock_qty IS NULL OR max_stock_qty >= 0");
         });
         b.HasKey(x => x.Id);
         b.Property(x => x.Sku).HasMaxLength(Product.SkuMaxLength).IsRequired();
@@ -119,6 +120,9 @@ internal sealed class ProductConfiguration : IEntityTypeConfiguration<Product>
         b.HasIndex(x => x.Name);
         b.Property(x => x.Description).HasMaxLength(2000);
         b.Property(x => x.MinStockQty).HasPrecision(18, 3);
+        b.Property(x => x.MaxStockQty).HasPrecision(18, 3);
+        b.HasOne<Inventory.Domain.Purchasing.Supplier>().WithMany().HasForeignKey(x => x.DefaultSupplierId).OnDelete(DeleteBehavior.Restrict);
+        b.HasOne<UnitOfMeasure>().WithMany().HasForeignKey(x => x.PurchaseUnitId).OnDelete(DeleteBehavior.Restrict);
         b.HasOne<ProductCategory>().WithMany().HasForeignKey(x => x.CategoryId).OnDelete(DeleteBehavior.Restrict);
         b.HasOne<UnitOfMeasure>().WithMany().HasForeignKey(x => x.BaseUnitId).OnDelete(DeleteBehavior.Restrict);
         b.HasOne<StoredFile>().WithMany().HasForeignKey(x => x.ImageId).OnDelete(DeleteBehavior.SetNull);

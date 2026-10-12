@@ -2,6 +2,7 @@ using System.Linq.Expressions;
 using Inventory.Application.Common;
 using Inventory.Domain.Common;
 using Inventory.Domain.Inventory;
+using Inventory.Domain.Purchasing;
 using Inventory.Domain.Warehouses;
 using Microsoft.EntityFrameworkCore;
 
@@ -34,6 +35,7 @@ public sealed class ReceiptService(
         if (query.Status is { } status) q = q.Where(r => r.Status == status);
         if (query.From is { } from) q = q.Where(r => r.ReceiptDate >= from);
         if (query.To is { } to) q = q.Where(r => r.ReceiptDate <= to);
+        if (query.PurchaseOrderId is { } poId) q = q.Where(r => r.PurchaseOrderId == poId);
         if (query.Term is { } term)
         {
             q = q.Where(r => r.Number.ToLower().Contains(term) || (r.SupplierName != null && r.SupplierName.ToLower().Contains(term))
@@ -42,7 +44,8 @@ public sealed class ReceiptService(
         if (query.SortBy is null) { query.SortBy = "createdAt"; query.SortDir ??= "desc"; }
         return await q.SortBy(query, Sorts, "createdAt", r => r.Id)
             .Select(r => new ReceiptListItemDto(r.Id, r.Number, r.WarehouseId, db.Warehouses.Where(w => w.Id == r.WarehouseId).Select(w => w.Code).First(),
-                r.ReceiptDate, r.SupplierName, r.SupplierReference, r.Status, r.Lines.Count, r.CreatedAt, r.PostedAt))
+                r.ReceiptDate, r.SupplierName, r.SupplierReference, r.Status, r.Lines.Count, r.CreatedAt, r.PostedAt,
+                r.PurchaseOrderId, db.PurchaseOrders.Where(o => o.Id == r.PurchaseOrderId).Select(o => o.Number).FirstOrDefault()))
             .ToPagedAsync(query, cancellationToken);
     }
 
@@ -60,17 +63,65 @@ public sealed class ReceiptService(
         await access.EnsureCanAccessAsync(request.WarehouseId, cancellationToken);
         var warehouse = await db.Warehouses.AsNoTracking().SingleAsync(w => w.Id == request.WarehouseId, cancellationToken);
         var date = request.ReceiptDate ?? DateOnly.FromDateTime(clock.GetUtcNow().UtcDateTime);
+        var order = request.PurchaseOrderId is { } poId ? await OrderForReceivingAsync(poId, warehouse.Id, cancellationToken) : null;
+        var supplierName = request.SupplierName;
+        if (order is not null && string.IsNullOrWhiteSpace(supplierName))
+        {
+            supplierName = await db.Suppliers.Where(s => s.Id == order.SupplierId).Select(s => s.Name).SingleAsync(cancellationToken);
+        }
 
         await using var tx = await db.Database.BeginTransactionAsync(cancellationToken);
         var number = await store.NextNumberAsync("GR", warehouse.Id, warehouse.Code, date.Year, cancellationToken);
-        var receipt = GoodsReceipt.Create(number, warehouse.Id, date);
-        receipt.SetHeader(date, request.SupplierName, request.SupplierReference, request.Notes);
-        receipt.ReplaceLines(await BuildLinesAsync(warehouse.Id, request.Lines ?? [], cancellationToken));
+        var receipt = GoodsReceipt.Create(number, warehouse.Id, date, order?.Id);
+        receipt.SetHeader(date, supplierName, request.SupplierReference, request.Notes);
+        receipt.ReplaceLines(await BuildLinesAsync(warehouse.Id, request.Lines ?? [], order, cancellationToken));
         db.GoodsReceipts.Add(receipt);
-        audit.Add("receipt.created", "receipt", receipt.Id.ToString(), warehouse.Id, new { receipt.Number, lines = receipt.Lines.Count });
+        audit.Add("receipt.created", "receipt", receipt.Id.ToString(), warehouse.Id, new { receipt.Number, lines = receipt.Lines.Count, purchaseOrder = order?.Number });
         await db.SaveChangesAsync(cancellationToken);
         await tx.CommitAsync(cancellationToken);
         return await GetAsync(receipt.Id, cancellationToken);
+    }
+
+    /// <summary>
+    /// A draft receipt for what is still expected on a purchase order: one line per order line with an outstanding quantity,
+    /// in the order's unit when it divides evenly (else the base unit), into the RECEIVING area. Lots are filled in before posting.
+    /// </summary>
+    public async Task<ReceiptDto> CreateFromOrderAsync(Guid purchaseOrderId, CancellationToken cancellationToken)
+    {
+        var order = await db.PurchaseOrders.AsNoTracking().Include(o => o.Lines).SingleOrDefaultAsync(o => o.Id == purchaseOrderId, cancellationToken)
+            ?? throw new NotFoundException("Purchase order not found.");
+        await access.EnsureCanAccessAsync(order.WarehouseId, cancellationToken);
+        var lines = new List<ReceiptLineRequest>();
+        foreach (var l in order.Lines.Where(l => l.Outstanding > 0).OrderBy(l => l.LineNo))
+        {
+            var sp = await rules.ProductAsync(l.ProductId, cancellationToken, requireActive: false);
+            var factor = l.ProductUnitId is { } puId ? sp.Product.Units.FirstOrDefault(u => u.Id == puId)?.FactorToBase : null;
+            var inPacks = factor is > 0 && l.Outstanding % factor.Value == 0;
+            var qty = inPacks ? l.Outstanding / factor!.Value : l.Outstanding;
+            lines.Add(new ReceiptLineRequest(l.ProductId, inPacks ? l.ProductUnitId : null, qty, qty, null, null, null, null));
+        }
+        if (lines.Count == 0)
+        {
+            throw new DomainRuleException("purchase_order.nothing_outstanding", $"Everything on {order.Number} has been received.", isConflict: true);
+        }
+        return await CreateAsync(new CreateReceiptRequest(order.WarehouseId, null, null, null, null, lines, order.Id), cancellationToken);
+    }
+
+    private async Task<PurchaseOrder> OrderForReceivingAsync(Guid purchaseOrderId, Guid warehouseId, CancellationToken cancellationToken)
+    {
+        var order = await db.PurchaseOrders.AsNoTracking().Include(o => o.Lines).SingleOrDefaultAsync(o => o.Id == purchaseOrderId, cancellationToken)
+            ?? throw new DomainRuleException("purchase_order.unknown", "Purchase order not found.");
+        if (order.WarehouseId != warehouseId)
+        {
+            // Same answer as an unknown order: the number of another branch's order is not revealed.
+            throw new DomainRuleException("purchase_order.unknown", "Purchase order not found in this warehouse.");
+        }
+        if (!order.CanReceive)
+        {
+            throw new DomainRuleException("purchase_order.not_receivable",
+                $"Purchase order {order.Number} is {PurchaseOrder.Label(order.Status)}: goods cannot be received against it.", isConflict: true);
+        }
+        return order;
     }
 
     public async Task<ReceiptDto> UpdateAsync(Guid id, UpdateReceiptRequest request, CancellationToken cancellationToken)
@@ -78,7 +129,10 @@ public sealed class ReceiptService(
         var receipt = await LoadAsync(id, cancellationToken);
         db.ExpectVersion(receipt, request.Version);
         receipt.SetHeader(request.ReceiptDate, request.SupplierName, request.SupplierReference, request.Notes);
-        receipt.ReplaceLines(await BuildLinesAsync(receipt.WarehouseId, request.Lines, cancellationToken));
+        var order = receipt.PurchaseOrderId is { } poId
+            ? await db.PurchaseOrders.AsNoTracking().Include(o => o.Lines).SingleAsync(o => o.Id == poId, cancellationToken)
+            : null;
+        receipt.ReplaceLines(await BuildLinesAsync(receipt.WarehouseId, request.Lines, order, cancellationToken));
         audit.Add("receipt.updated", "receipt", id.ToString(), receipt.WarehouseId, new { lines = receipt.Lines.Count });
         await db.SaveChangesAsync(cancellationToken);
         return await GetAsync(id, cancellationToken);
@@ -122,6 +176,7 @@ public sealed class ReceiptService(
 
         receipt.MarkPosted(user.IdOrNull, clock.GetUtcNow());
         await ledger.ApplyAsync(changes, cancellationToken);
+        await RecordOnOrderAsync(receipt, +1, cancellationToken);
         audit.Add("receipt.posted", "receipt", id.ToString(), receipt.WarehouseId, new { receipt.Number, lines = receipt.Lines.Count, quantity = receipt.Lines.Sum(l => l.Quantity) });
         await db.SaveChangesAsync(cancellationToken);
         await tx.CommitAsync(cancellationToken);
@@ -140,6 +195,7 @@ public sealed class ReceiptService(
             new BalanceKey(receipt.WarehouseId, line.LocationId, line.ProductId, line.LotId), -line.Quantity, 0,
             MovementType.ReceiptReversal, new StockSource(SourceTypes.Receipt, receipt.Id, line.Id, receipt.Number, reason))).ToList();
         await ledger.ApplyAsync(changes, cancellationToken);
+        await RecordOnOrderAsync(receipt, -1, cancellationToken);
 
         audit.Add("receipt.reversed", "receipt", id.ToString(), receipt.WarehouseId, new { receipt.Number, reason });
         await db.SaveChangesAsync(cancellationToken);
@@ -156,7 +212,28 @@ public sealed class ReceiptService(
         return await GetAsync(id, cancellationToken);
     }
 
-    private async Task<List<GoodsReceiptLine>> BuildLinesAsync(Guid warehouseId, IReadOnlyList<ReceiptLineRequest> requests, CancellationToken cancellationToken)
+    /// <summary>
+    /// Records the posted (sign +1) or reversed (sign −1) quantities on the linked purchase order. The order row is locked so
+    /// concurrent receipts for the same order add up correctly.
+    /// </summary>
+    private async Task RecordOnOrderAsync(GoodsReceipt receipt, int sign, CancellationToken cancellationToken)
+    {
+        if (receipt.PurchaseOrderId is not { } poId) return;
+        await store.LockRowAsync("purchase_orders", poId, cancellationToken);
+        var order = await db.PurchaseOrders.Include(o => o.Lines).SingleAsync(o => o.Id == poId, cancellationToken);
+        await db.Entry(order).ReloadAsync(cancellationToken);
+        foreach (var line in receipt.Lines.Where(l => l.PurchaseOrderLineId is not null))
+        {
+            var orderLine = order.Lines.Single(l => l.Id == line.PurchaseOrderLineId);
+            await db.Entry(orderLine).ReloadAsync(cancellationToken);
+            order.RecordReceived(orderLine.Id, sign * line.Quantity);
+        }
+        audit.Add(sign > 0 ? "purchase_order.received" : "purchase_order.receipt_reversed", "purchase_order", poId.ToString(), order.WarehouseId,
+            new { order.Number, receipt = receipt.Number, status = order.Status.ToString() });
+    }
+
+    private async Task<List<GoodsReceiptLine>> BuildLinesAsync(Guid warehouseId, IReadOnlyList<ReceiptLineRequest> requests, PurchaseOrder? order,
+        CancellationToken cancellationToken)
     {
         Guid? receivingId = null;
         var lines = new List<GoodsReceiptLine>();
@@ -175,8 +252,11 @@ public sealed class ReceiptService(
                 }
                 var baseQty = StockRules.ToBase(sp, r.Quantity, r.ProductUnitId);
                 if (r.ExpectedQuantity is < 0) throw new DomainRuleException("receipt.expected_negative", "Expected quantity cannot be negative.");
-                StockRules.CheckLot(sp, r.LotNo, r.ExpiryDate, requireExpiry: false);
-                lines.Add(GoodsReceiptLine.Create(sp.Product.Id, r.ProductUnitId, r.Quantity, baseQty, r.ExpectedQuantity, locationId, r.LotNo, r.ExpiryDate, r.Notes));
+                // Drafts may be saved before the lot is known; posting requires it.
+                StockRules.CheckLot(sp, r.LotNo, r.ExpiryDate, requireExpiry: false, requireLot: false);
+                var line = GoodsReceiptLine.Create(sp.Product.Id, r.ProductUnitId, r.Quantity, baseQty, r.ExpectedQuantity, locationId, r.LotNo, r.ExpiryDate, r.Notes);
+                line.LinkOrderLine(order?.Lines.FirstOrDefault(l => l.ProductId == sp.Product.Id)?.Id);
+                lines.Add(line);
             }
             catch (DomainRuleException e)
             {
@@ -207,6 +287,7 @@ public sealed class ReceiptService(
         var locations = await db.WarehouseLocations.AsNoTracking().Where(l => locationIds.Contains(l.Id)).ToDictionaryAsync(l => l.Id, l => l.Code, cancellationToken);
         var warehouseCode = await db.Warehouses.Where(w => w.Id == r.WarehouseId).Select(w => w.Code).SingleAsync(cancellationToken);
         var names = await users.NamesAsync([r.CreatedBy, r.PostedBy, r.ReversedBy], cancellationToken);
+        var orderNumber = r.PurchaseOrderId is { } poId ? await db.PurchaseOrders.Where(o => o.Id == poId).Select(o => o.Number).SingleAsync(cancellationToken) : null;
 
         var lines = r.Lines.OrderBy(l => l.LineNo).Select(l =>
         {
@@ -216,10 +297,10 @@ public sealed class ReceiptService(
             // A pack unit removed from the product after the receipt was entered shows as "?" (the base quantity is what counts).
             var unitCode = l.ProductUnitId is null ? baseCode : pack is null ? "?" : units[pack.UnitId];
             return new ReceiptLineDto(l.Id, l.LineNo, l.ProductId, p.Sku, p.Name, l.ProductUnitId, unitCode, l.EnteredQuantity, l.Quantity, baseCode,
-                l.ExpectedQuantity, l.LocationId, locations[l.LocationId], l.LotNo, l.ExpiryDate, l.Notes);
+                l.ExpectedQuantity, l.LocationId, locations[l.LocationId], l.LotNo, l.ExpiryDate, l.Notes, l.PurchaseOrderLineId);
         }).ToList();
 
         return new ReceiptDto(r.Id, r.Number, r.WarehouseId, warehouseCode, r.ReceiptDate, r.SupplierName, r.SupplierReference, r.Notes, r.Status, lines,
-            r.CreatedAt, names.NameOf(r.CreatedBy), r.PostedAt, names.NameOf(r.PostedBy), r.ReversedAt, names.NameOf(r.ReversedBy), r.ReversalReason, version);
+            r.CreatedAt, names.NameOf(r.CreatedBy), r.PostedAt, names.NameOf(r.PostedBy), r.ReversedAt, names.NameOf(r.ReversedBy), r.ReversalReason, version, r.PurchaseOrderId, orderNumber);
     }
 }

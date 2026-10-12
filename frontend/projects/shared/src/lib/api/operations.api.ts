@@ -30,15 +30,24 @@ import {
   PickListDto,
   PickResultDto,
   ProductStockDto,
+  PurchaseOrderDto,
+  PurchaseOrderInput,
+  PurchaseOrderListItemDto,
+  PurchaseOrderStatus,
+  PurchasingSettingsDto,
   ReceiptDto,
   ReceiptInput,
   ReceiptListItemDto,
   ReceiptStatus,
   ReconciliationResult,
+  ReorderSuggestionDto,
   ReportInfoDto,
   ReportResult,
   ShortShipDecision,
   StockSummaryDto,
+  SupplierDto,
+  SupplierInput,
+  SupplierListItemDto,
   TemplateDto,
   TransferDto,
   TransferListItemDto,
@@ -82,7 +91,7 @@ export class InventoryApi extends ApiBase {
 
 @Injectable({ providedIn: 'root' })
 export class ReceiptsApi extends ApiBase {
-  list(query: PageQuery & { warehouseId: string; status?: ReceiptStatus; from?: string; to?: string }): Promise<PagedResult<ReceiptListItemDto>> {
+  list(query: PageQuery & { warehouseId: string; status?: ReceiptStatus; from?: string; to?: string; purchaseOrderId?: string }): Promise<PagedResult<ReceiptListItemDto>> {
     return this.get('/receipts', toHttpParams(query));
   }
   getOne(id: string): Promise<ReceiptDto> {
@@ -102,6 +111,68 @@ export class ReceiptsApi extends ApiBase {
   }
   cancel(id: string): Promise<ReceiptDto> {
     return this.post(`/receipts/${id}/cancel`);
+  }
+}
+
+@Injectable({ providedIn: 'root' })
+export class SuppliersApi extends ApiBase {
+  list(query: PageQuery): Promise<PagedResult<SupplierListItemDto>> {
+    return this.get('/suppliers', toHttpParams(query));
+  }
+  getOne(id: string): Promise<SupplierDto> {
+    return this.get(`/suppliers/${id}`);
+  }
+  create(body: SupplierInput & { code: string }): Promise<SupplierDto> {
+    return this.post('/suppliers', body);
+  }
+  update(id: string, body: SupplierInput & { version: number }): Promise<SupplierDto> {
+    return this.put(`/suppliers/${id}`, body);
+  }
+  setActive(id: string, active: boolean): Promise<void> {
+    return this.post(`/suppliers/${id}/${active ? 'activate' : 'deactivate'}`);
+  }
+}
+
+@Injectable({ providedIn: 'root' })
+export class PurchaseOrdersApi extends ApiBase {
+  list(query: PageQuery & { warehouseId: string; status?: PurchaseOrderStatus; openOnly?: boolean; supplierId?: string; productId?: string }): Promise<PagedResult<PurchaseOrderListItemDto>> {
+    return this.get('/purchase-orders', toHttpParams(query));
+  }
+  getOne(id: string): Promise<PurchaseOrderDto> {
+    return this.get(`/purchase-orders/${id}`);
+  }
+  create(warehouseId: string, body: PurchaseOrderInput): Promise<PurchaseOrderDto> {
+    return this.post('/purchase-orders', { warehouseId, ...body });
+  }
+  /** Draft: everything. Placed: dates, reference and notes (`lines: null`). */
+  update(id: string, body: PurchaseOrderInput & { orderDate: string; version: number }): Promise<PurchaseOrderDto> {
+    return this.put(`/purchase-orders/${id}`, body);
+  }
+  place(id: string): Promise<PurchaseOrderDto> {
+    return this.post(`/purchase-orders/${id}/place`);
+  }
+  cancel(id: string, reason: string | null): Promise<PurchaseOrderDto> {
+    return this.post(`/purchase-orders/${id}/cancel`, { reason });
+  }
+  close(id: string, reason: string): Promise<PurchaseOrderDto> {
+    return this.post(`/purchase-orders/${id}/close`, { reason });
+  }
+  /** A draft goods receipt for everything still outstanding. */
+  createReceipt(id: string): Promise<ReceiptDto> {
+    return this.post(`/purchase-orders/${id}/receipts`);
+  }
+}
+
+@Injectable({ providedIn: 'root' })
+export class PurchasingApi extends ApiBase {
+  suggestions(warehouseId: string): Promise<ReorderSuggestionDto[]> {
+    return this.get('/purchasing/suggestions', new HttpParams().set('warehouseId', warehouseId));
+  }
+  settings(): Promise<PurchasingSettingsDto> {
+    return this.get('/purchasing/settings');
+  }
+  updateSettings(lowStockAlertEmails: string | null): Promise<PurchasingSettingsDto> {
+    return this.put('/purchasing/settings', { lowStockAlertEmails });
   }
 }
 

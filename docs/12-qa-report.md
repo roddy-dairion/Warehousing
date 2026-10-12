@@ -31,13 +31,13 @@ The tests read **every API endpoint (130) from the routing table**, so endpoints
 
 ### Warehouse (branch) isolation: `WarehouseIsolationTests`
 
-A manager assigned only to MAIN has nearly every permission, so only the branch scope can refuse. Against another branch, that manager gets **404/403 for 22 reads**:
+A manager assigned only to MAIN has nearly every permission, so only the branch scope can refuse. Against another branch, that manager gets **404/403 for 25 reads**:
 * documents: receipts, adjustments, bin moves and dispatches, including the pick list, documents and proof-of-delivery files;
 * stock: balances, summary, movements, expiring lots and the reconciliation check;
 * reports, including the CSV download, and the dashboard;
 * warehouse details, bins and bin lists.
 
-The same manager gets **404/403 for 13 changes**: creating receipts, posting, cancelling and reversing them, adjustments and their approval, bin moves, dispatch creation, submission, cancellation and picking, and creating bins. Afterwards the other branch's data is checked unchanged. The product stock view only lists the branches the user may see.
+The same manager gets **404/403 for 18 changes**: creating receipts, posting, cancelling and reversing them, adjustments and their approval, bin moves, dispatch creation, submission, cancellation and picking, and creating bins. Afterwards the other branch's data is checked unchanged. The product stock view only lists the branches the user may see.
 
 ### Concurrency soak: `StockSoakTests`
 

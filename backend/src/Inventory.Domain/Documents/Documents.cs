@@ -118,6 +118,10 @@ public sealed class CompanyProfile : Entity, IAuditable
     public string DeliveryEmailBody { get; private set; } = DefaultEmailBody;
     /// <summary>Extra internal recipients (copy) of delivery-note emails, comma separated.</summary>
     public string? DeliveryEmailBcc { get; private set; }
+    /// <summary>Recipients (comma separated) of the daily low-stock email; null = no email.</summary>
+    public string? LowStockAlertEmails { get; private set; }
+    /// <summary>Company-local date the last low-stock email was considered (sent at most once a day).</summary>
+    public DateOnly? LowStockAlertCheckedOn { get; private set; }
 
     public DateTimeOffset CreatedAt { get; set; }
     public Guid? CreatedBy { get; set; }
@@ -146,6 +150,11 @@ public sealed class CompanyProfile : Entity, IAuditable
         }
         TimeZone = timeZone.Trim();
     }
+
+    public void SetLowStockAlert(string? recipients) =>
+        LowStockAlertEmails = Text.Optional(recipients, 500, "company.alert_emails_invalid", "Low-stock email recipients");
+
+    public void MarkLowStockAlertChecked(DateOnly day) => LowStockAlertCheckedOn = day;
 
     public void SetEmail(string subject, string body, string? bcc)
     {

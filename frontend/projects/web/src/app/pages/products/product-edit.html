@@ -57,9 +57,28 @@
               <label for="minStock">Minimum stock</label>
               <p-inputnumber inputId="minStock" formControlName="minStockQty" [min]="0" [maxFractionDigits]="baseUnit()?.decimals ?? 0" [useGrouping]="false"
                 [suffix]="baseUnit() ? ' ' + baseUnit()!.code : ''" />
-              <span class="hint">Shown as a low-stock alert below this level.</span>
+              <span class="hint">Shown as a low-stock alert below this level, and suggested for reordering.</span>
               <wh-field-error [control]="form.controls.minStockQty" />
             </div>
+            <div class="field">
+              <label for="maxStock">Order up to</label>
+              <p-inputnumber inputId="maxStock" formControlName="maxStockQty" [min]="0" [maxFractionDigits]="baseUnit()?.decimals ?? 0" [useGrouping]="false"
+                [suffix]="baseUnit() ? ' ' + baseUnit()!.code : ''" />
+              <span class="hint">Reorder suggestions bring stock back up to this level (empty = up to the minimum).</span>
+              <wh-field-error [control]="form.controls.maxStockQty" />
+            </div>
+            <div class="field">
+              <label for="supplier">Usual supplier</label>
+              <p-select inputId="supplier" formControlName="defaultSupplierId" [options]="suppliers()" optionLabel="label" optionValue="id"
+                placeholder="None" [showClear]="true" [filter]="true" filterBy="label" appendTo="body" />
+            </div>
+            @if (!isNew()) {
+              <div class="field">
+                <label for="purchaseUnit">Ordered in</label>
+                <p-select inputId="purchaseUnit" formControlName="purchaseUnitId" [options]="purchaseUnitChoices()" optionLabel="label" optionValue="id" appendTo="body" />
+                <span class="hint">Suggestions round up to whole units of this size (e.g. full cartons).</span>
+              </div>
+            }
             @if (isNew()) {
               <div class="field">
                 <label for="barcode">Barcode (optional)</label>

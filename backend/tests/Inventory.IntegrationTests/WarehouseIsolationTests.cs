@@ -2,6 +2,7 @@ using System.Net;
 using System.Text.Json;
 using Inventory.Application.Dispatches;
 using Inventory.Application.Inventory;
+using Inventory.Application.Purchasing;
 using static Inventory.IntegrationTests.Http;
 
 namespace Inventory.IntegrationTests;
@@ -40,6 +41,12 @@ public sealed class WarehouseIsolationTests(ApiFactory api) : IClassFixture<ApiF
         var dispatchB = await (await kit.Admin.PostJsonAsync("/api/v1/dispatches", new { warehouseId = other, customerId = customer.Id, lines = new[] { DispatchKit.Line(product.Id, 2) } }))
             .ReadAsync<DispatchDto>();
 
+        var supplier = await (await kit.Admin.PostJsonAsync("/api/v1/suppliers", new { code = Unique("SUP"), name = "Supplier" })).ReadAsync<SupplierDto>();
+        object PoBody(Guid warehouseId) => new { warehouseId, supplierId = supplier.Id, lines = new[] { new { productId = product.Id, quantity = 5m } } };
+        var poDraftB = await (await kit.Admin.PostJsonAsync("/api/v1/purchase-orders", PoBody(other))).ReadAsync<PurchaseOrderDto>();
+        var poB = await (await kit.Admin.PostJsonAsync("/api/v1/purchase-orders", PoBody(other))).ReadAsync<PurchaseOrderDto>();
+        poB = await (await kit.Admin.PostAsync($"/api/v1/purchase-orders/{poB.Id}/place")).ReadAsync<PurchaseOrderDto>();
+
         // A manager of MAIN only (has nearly every permission, so only the branch scope can refuse).
         var manager = kit.Manager;
         var q = $"warehouseId={other}";
@@ -54,6 +61,7 @@ public sealed class WarehouseIsolationTests(ApiFactory api) : IClassFixture<ApiF
             $"/api/v1/inventory/expiring?{q}", $"/api/v1/inventory/reconciliation?{q}",
             $"/api/v1/reports/stock-on-hand?{q}", $"/api/v1/reports/movements/csv?{q}", $"/api/v1/dashboard/warehouse?{q}",
             $"/api/v1/warehouses/{other}", $"/api/v1/warehouses/{other}/locations", $"/api/v1/locations/{binB}",
+            $"/api/v1/purchase-orders/{poB.Id}", $"/api/v1/purchase-orders?{q}", $"/api/v1/purchasing/suggestions?{q}",
         };
         var leaks = new List<string>();
         foreach (var url in reads)
@@ -74,13 +82,25 @@ public sealed class WarehouseIsolationTests(ApiFactory api) : IClassFixture<ApiF
             ($"/api/v1/dispatches/{dispatchB.Id}/submit", null), ($"/api/v1/dispatches/{dispatchB.Id}/cancel", new { reason = "test" }),
             ($"/api/v1/dispatches/{dispatchB.Id}/picks", new { scanId = Guid.NewGuid().ToString(), location = "x", productId = product.Id, quantity = 1 }),
             ($"/api/v1/warehouses/{other}/locations", new { code = "ZZ-1", type = "storage" }),
+            ("/api/v1/purchase-orders", PoBody(other)), ($"/api/v1/purchase-orders/{poDraftB.Id}/place", null),
+            ($"/api/v1/purchase-orders/{poDraftB.Id}/cancel", new { reason = "test" }), ($"/api/v1/purchase-orders/{poB.Id}/close", new { reason = "test" }),
+            ($"/api/v1/purchase-orders/{poB.Id}/receipts", null),
         };
         foreach (var (url, body) in writes)
         {
             var response = await manager.PostJsonAsync(url, body ?? new { });
             if (response.StatusCode is not (HttpStatusCode.NotFound or HttpStatusCode.Forbidden)) leaks.Add($"POST {url} -> {(int)response.StatusCode}");
         }
+        var put = await manager.PutJsonAsync($"/api/v1/purchase-orders/{poDraftB.Id}",
+            new { supplierId = supplier.Id, orderDate = poDraftB.OrderDate, version = poDraftB.Version, lines = (object[]?)null });
+        if (put.StatusCode is not (HttpStatusCode.NotFound or HttpStatusCode.Forbidden)) leaks.Add($"PUT purchase order -> {(int)put.StatusCode}");
         leaks.ShouldBeEmpty();
+
+        // A receipt in MAIN cannot be linked to the other branch's order (and its number is not revealed).
+        var crossLink = await (await manager.PostJsonAsync("/api/v1/receipts", new { warehouseId = kit.WarehouseId, purchaseOrderId = poB.Id, lines = new[] { InventoryKit.Line(product.Id, 1) } }))
+            .ProblemAsync(HttpStatusCode.UnprocessableEntity);
+        crossLink.Code().ShouldBe("purchase_order.unknown");
+        crossLink.GetProperty("detail").GetString()!.ShouldNotContain(poB.Number);
 
         // Product stock across branches only lists the branches the user may see.
         var productStock = await manager.GetJsonAsync<JsonElement>($"/api/v1/inventory/products/{product.Id}");
@@ -91,5 +111,7 @@ public sealed class WarehouseIsolationTests(ApiFactory api) : IClassFixture<ApiF
         (await kit.Admin.GetJsonAsync<ReceiptDto>($"/api/v1/receipts/{draftB.Id}"))!.Status.ShouldBe(Domain.Inventory.ReceiptStatus.Draft);
         (await kit.Admin.GetJsonAsync<DispatchDto>($"/api/v1/dispatches/{dispatchB.Id}"))!.Status.ShouldBe(Domain.Dispatches.DispatchStatus.Draft);
         (await stock.BalancesAsync(product.Id, other)).Sum(b => b.OnHand).ShouldBe(10);
+        (await kit.Admin.GetJsonAsync<PurchaseOrderDto>($"/api/v1/purchase-orders/{poDraftB.Id}"))!.Status.ShouldBe(Domain.Purchasing.PurchaseOrderStatus.Draft);
+        (await kit.Admin.GetJsonAsync<PurchaseOrderDto>($"/api/v1/purchase-orders/{poB.Id}"))!.Status.ShouldBe(Domain.Purchasing.PurchaseOrderStatus.Ordered);
     }
 }

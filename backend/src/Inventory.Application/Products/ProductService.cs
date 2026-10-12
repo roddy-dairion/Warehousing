@@ -65,8 +65,10 @@ public sealed class ProductService(IApplicationDbContext db, BarcodeRegistry bar
             return new ProductBarcodeDto(b.Id, b.Value, b.ProductUnitId, pu is null ? baseUnit.Code : units[pu.UnitId].Code, pu?.FactorToBase ?? 1, b.Symbology, b.IsPrimary);
         }).OrderBy(b => b.FactorToBase).ThenByDescending(b => b.IsPrimary).ThenBy(b => b.Value).ToList();
 
+        var supplier = p.DefaultSupplierId is null ? null : await db.Suppliers.AsNoTracking().Where(s => s.Id == p.DefaultSupplierId).Select(s => s.Name).FirstOrDefaultAsync(cancellationToken);
         return new ProductDto(p.Id, p.Sku, p.Name, p.Description, p.CategoryId, category, p.BaseUnitId, baseUnit.Code, baseUnit.Decimals,
-            p.MinStockQty, p.IsLotTracked, p.HasExpiry, p.ShelfLifeDays, p.ImageId is not null, p.IsActive, unitDtos, barcodeDtos, p.CreatedAt, p.UpdatedAt, version);
+            p.MinStockQty, p.IsLotTracked, p.HasExpiry, p.ShelfLifeDays, p.ImageId is not null, p.IsActive, unitDtos, barcodeDtos, p.CreatedAt, p.UpdatedAt, version,
+            p.MaxStockQty, p.DefaultSupplierId, supplier, p.PurchaseUnitId);
     }
 
     public async Task<ProductDto> CreateAsync(CreateProductRequest r, CancellationToken cancellationToken)
@@ -86,6 +88,7 @@ public sealed class ProductService(IApplicationDbContext db, BarcodeRegistry bar
         {
             await AddBarcodeInternalAsync(product, b.Value, b.UnitId, b.Symbology, cancellationToken);
         }
+        await SetReorderAsync(product, r.MaxStockQty, r.DefaultSupplierId, r.PurchaseUnitId, cancellationToken);
         db.Products.Add(product);
         audit.Add("product.created", "product", product.Id.ToString(), data: new { product.Sku, product.Name });
         await db.SaveChangesAsync(cancellationToken);
@@ -112,9 +115,19 @@ public sealed class ProductService(IApplicationDbContext db, BarcodeRegistry bar
         product.Rename(r.Name);
         product.Describe(r.Description, r.CategoryId);
         product.SetStockRules(await ValidMinStockAsync(r.BaseUnitId, r.MinStockQty, cancellationToken), r.IsLotTracked, r.HasExpiry, r.ShelfLifeDays);
+        await SetReorderAsync(product, r.MaxStockQty, r.DefaultSupplierId, r.PurchaseUnitId, cancellationToken);
         audit.Add("product.updated", "product", id.ToString(), data: new { product.Sku, product.Name, product.IsLotTracked, product.HasExpiry });
         await db.SaveChangesAsync(cancellationToken);
         return await GetAsync(id, cancellationToken);
+    }
+
+    private async Task SetReorderAsync(Product product, decimal? maxStock, Guid? supplierId, Guid? purchaseUnitId, CancellationToken cancellationToken)
+    {
+        if (supplierId is { } sid && sid != product.DefaultSupplierId && !await db.Suppliers.AnyAsync(s => s.Id == sid && s.IsActive, cancellationToken))
+        {
+            throw new DomainRuleException("supplier.unknown", "Choose an active supplier.");
+        }
+        product.SetReorder(await ValidMinStockAsync(product.BaseUnitId, maxStock, cancellationToken), supplierId, purchaseUnitId);
     }
 
     public async Task SetActiveAsync(Guid id, bool active, CancellationToken cancellationToken)

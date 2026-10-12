@@ -2,6 +2,7 @@ using System.Linq.Expressions;
 using Inventory.Application.Common;
 using Inventory.Domain.Common;
 using Inventory.Domain.Inventory;
+using Inventory.Domain.Purchasing;
 using Inventory.Domain.Warehouses;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
@@ -79,18 +80,22 @@ public sealed class InventoryQueries(IApplicationDbContext db, IWarehouseAccess 
                                   && loc.IsActive && loc.IsPickable && loc.Type == LocationType.Storage
                                   && (b.LotId == null || (lot!.Status == LotStatus.Released && (lot.ExpiryDate == null || lot.ExpiryDate >= today)))
                             select (decimal?)b.Available).Sum() ?? 0
+            let onOrder = db.PurchaseOrders
+                .Where(o => o.WarehouseId == wh && (o.Status == PurchaseOrderStatus.Ordered || o.Status == PurchaseOrderStatus.PartiallyReceived))
+                .SelectMany(o => o.Lines).Where(l => l.ProductId == p.Id && l.Quantity > l.ReceivedQuantity)
+                .Sum(l => (decimal?)(l.Quantity - l.ReceivedQuantity)) ?? 0
             select new StockSummaryDto
             {
                 ProductId = p.Id, Sku = p.Sku, ProductName = p.Name,
                 CategoryName = db.ProductCategories.Where(c => c.Id == p.CategoryId).Select(c => c.Name).FirstOrDefault(),
                 BaseUnitCode = db.UnitsOfMeasure.Where(u => u.Id == p.BaseUnitId).Select(u => u.Code).First(),
                 IsActive = p.IsActive, OnHand = onHand, Reserved = reserved, Available = onHand - reserved, Sellable = sellable,
-                MinStockQty = p.MinStockQty, IsLow = p.MinStockQty != null && onHand - reserved < p.MinStockQty,
+                MinStockQty = p.MinStockQty, OnOrder = onOrder, IsLow = p.MinStockQty != null && onHand - reserved < p.MinStockQty,
             };
 
         rows = query.OnlyWithStock
             ? rows.Where(r => r.OnHand > 0)
-            : rows.Where(r => r.OnHand > 0 || (r.MinStockQty != null && r.IsActive));
+            : rows.Where(r => r.OnHand > 0 || r.OnOrder > 0 || (r.MinStockQty != null && r.IsActive));
         if (query.LowStockOnly) rows = rows.Where(r => r.IsLow);
         return await rows.SortBy(query, SummarySorts, "sku", r => r.ProductId).ToPagedAsync(query, cancellationToken);
     }

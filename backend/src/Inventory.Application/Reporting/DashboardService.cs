@@ -22,14 +22,20 @@ public sealed record WarehouseDashboardDto(
     IReadOnlyList<DashboardDispatchDto>? DispatchesToAction,
     IReadOnlyList<DashboardMovementDto>? RecentMovements,
     int? FailedDocuments,
-    int? FailedEmails);
+    int? FailedEmails,
+    PurchasingFiguresDto? Purchasing);
+
+/// <param name="ToReorder">Products below minimum stock and not covered by open orders.</param>
+public sealed record PurchasingFiguresDto(int Draft, int Open, int Overdue, int ToReorder);
 
 public sealed record StockFiguresDto(int ProductsInStock, decimal OnHand, decimal Reserved, decimal Available, int LowStockProducts, int ExpiringLots, int ExpiredLots);
 
 public sealed record DispatchFiguresDto(int Draft, int AwaitingApproval, int ToPick, int Picking, int ReadyToShip, int AwaitingDelivery, int DeliveredToday);
 
 /// <summary>Warehouse dashboard figures (each section requires the matching read permission).</summary>
-public sealed class DashboardService(IApplicationDbContext db, IWarehouseAccess access, ICurrentUser user, TimeProvider clock, IOptions<Inventory.InventoryOptions> inventoryOptions)
+public sealed class DashboardService(
+    IApplicationDbContext db, IWarehouseAccess access, ICurrentUser user, TimeProvider clock, IOptions<Inventory.InventoryOptions> inventoryOptions,
+    Purchasing.ReorderService reorder)
 {
     public async Task<WarehouseDashboardDto> WarehouseAsync(Guid warehouseId, CancellationToken cancellationToken)
     {
@@ -103,6 +109,18 @@ public sealed class DashboardService(IApplicationDbContext db, IWarehouseAccess 
                 && db.Dispatches.Any(d => d.Id == m.RelatedId && d.WarehouseId == warehouseId), cancellationToken);
         }
 
-        return new WarehouseDashboardDto(warehouseId, stock, pendingReceipts, pendingAdjustments, dispatchFigures, toAction, movements, failedDocs, failedEmails);
+        PurchasingFiguresDto? purchasing = null;
+        if (user.HasPermission(Permissions.PurchasingRead))
+        {
+            var orders = db.PurchaseOrders.AsNoTracking().Where(o => o.WarehouseId == warehouseId);
+            var open = orders.Where(o => o.Status == Domain.Purchasing.PurchaseOrderStatus.Ordered || o.Status == Domain.Purchasing.PurchaseOrderStatus.PartiallyReceived);
+            purchasing = new PurchasingFiguresDto(
+                await orders.CountAsync(o => o.Status == Domain.Purchasing.PurchaseOrderStatus.Draft, cancellationToken),
+                await open.CountAsync(cancellationToken),
+                await open.CountAsync(o => o.ExpectedDate != null && o.ExpectedDate < today, cancellationToken),
+                await reorder.CountToOrderAsync(warehouseId, cancellationToken));
+        }
+
+        return new WarehouseDashboardDto(warehouseId, stock, pendingReceipts, pendingAdjustments, dispatchFigures, toAction, movements, failedDocs, failedEmails, purchasing);
     }
 }

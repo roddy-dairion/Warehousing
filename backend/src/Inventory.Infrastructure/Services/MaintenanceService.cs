@@ -1,4 +1,5 @@
 using Inventory.Application.Inventory;
+using Inventory.Application.Purchasing;
 using Inventory.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
@@ -9,7 +10,7 @@ using Microsoft.Extensions.Options;
 namespace Inventory.Infrastructure.Services;
 
 /// <summary>
-/// Hourly housekeeping: deletes expired idempotency records and, every <see cref="InventoryOptions.ReconciliationIntervalHours"/>,
+/// Hourly housekeeping: deletes expired idempotency records, queues the daily low-stock email and, every <see cref="InventoryOptions.ReconciliationIntervalHours"/>,
 /// checks the stock invariants. Reconciliation differences are logged as errors; data is never changed automatically.
 /// </summary>
 internal sealed partial class MaintenanceService(IServiceScopeFactory scopes, IOptions<InventoryOptions> options, TimeProvider clock, ILogger<MaintenanceService> logger)
@@ -24,6 +25,7 @@ internal sealed partial class MaintenanceService(IServiceScopeFactory scopes, IO
             try
             {
                 await CleanUpIdempotencyAsync(stoppingToken);
+                await LowStockAlertAsync(stoppingToken);
                 var now = clock.GetUtcNow();
                 if (lastReconciliation is null || now - lastReconciliation >= TimeSpan.FromHours(Math.Max(1, options.Value.ReconciliationIntervalHours)))
                 {
@@ -48,6 +50,13 @@ internal sealed partial class MaintenanceService(IServiceScopeFactory scopes, IO
         if (deleted > 0) LogCleaned(logger, deleted);
     }
 
+    /// <summary>The daily low-stock email (sent once a day from 07:00 company time when recipients are configured).</summary>
+    private async Task LowStockAlertAsync(CancellationToken ct)
+    {
+        await using var scope = scopes.CreateAsyncScope();
+        if (await scope.ServiceProvider.GetRequiredService<ReorderService>().SendDailyAlertAsync(ct)) LogLowStockAlert(logger);
+    }
+
     private async Task ReconcileAsync(CancellationToken ct)
     {
         await using var scope = scopes.CreateAsyncScope();
@@ -65,6 +74,9 @@ internal sealed partial class MaintenanceService(IServiceScopeFactory scopes, IO
 
     [LoggerMessage(Level = LogLevel.Error, Message = "Maintenance run failed")]
     private static partial void LogFailed(ILogger logger, Exception e);
+
+    [LoggerMessage(Level = LogLevel.Information, Message = "Low-stock email queued")]
+    private static partial void LogLowStockAlert(ILogger logger);
 
     [LoggerMessage(Level = LogLevel.Information, Message = "Deleted {Count} expired idempotency records")]
     private static partial void LogCleaned(ILogger logger, int count);

@@ -183,6 +183,12 @@ export interface ProductDto {
   createdAt: string;
   updatedAt: string;
   version: number;
+  /** Reordering: order up to this level (null = up to the minimum). */
+  maxStockQty: number | null;
+  defaultSupplierId: string | null;
+  defaultSupplierName: string | null;
+  /** Reordering: unit of measure ordered in (null = base unit). */
+  purchaseUnitId: string | null;
 }
 
 export interface ProductInput {
@@ -194,6 +200,10 @@ export interface ProductInput {
   isLotTracked: boolean;
   hasExpiry: boolean;
   shelfLifeDays?: number | null;
+  /** Reorder settings. On update, omitted values are cleared: always send them. */
+  maxStockQty?: number | null;
+  defaultSupplierId?: string | null;
+  purchaseUnitId?: string | null;
 }
 
 export interface BarcodeLookupDto {

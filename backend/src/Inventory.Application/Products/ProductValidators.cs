@@ -11,6 +11,7 @@ public sealed class CreateProductRequestValidator : AbstractValidator<CreateProd
         RuleFor(x => x.Description).MaximumLength(2000);
         RuleFor(x => x.BaseUnitId).NotEmpty().WithMessage("Choose a base unit.");
         RuleFor(x => x.MinStockQty).GreaterThanOrEqualTo(0).When(x => x.MinStockQty is not null);
+        RuleFor(x => x.MaxStockQty).GreaterThanOrEqualTo(0).When(x => x.MaxStockQty is not null);
         RuleFor(x => x.ShelfLifeDays).InclusiveBetween(1, 36500).When(x => x.ShelfLifeDays is not null);
         RuleForEach(x => x.Units).ChildRules(u => u.RuleFor(x => x.FactorToBase).GreaterThan(0));
         RuleForEach(x => x.Barcodes).ChildRules(b => b.RuleFor(x => x.Value).NotEmpty().MaximumLength(64));
@@ -25,6 +26,7 @@ public sealed class UpdateProductRequestValidator : AbstractValidator<UpdateProd
         RuleFor(x => x.Description).MaximumLength(2000);
         RuleFor(x => x.BaseUnitId).NotEmpty().WithMessage("Choose a base unit.");
         RuleFor(x => x.MinStockQty).GreaterThanOrEqualTo(0).When(x => x.MinStockQty is not null);
+        RuleFor(x => x.MaxStockQty).GreaterThanOrEqualTo(0).When(x => x.MaxStockQty is not null);
         RuleFor(x => x.ShelfLifeDays).InclusiveBetween(1, 36500).When(x => x.ShelfLifeDays is not null);
     }
 }

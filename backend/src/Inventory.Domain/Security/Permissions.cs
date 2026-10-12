@@ -25,6 +25,8 @@ public static class Permissions
     public const string DispatchesShip = "dispatches.ship";
     public const string DispatchesDeliver = "dispatches.deliver";
     public const string DispatchesCancel = "dispatches.cancel";
+    public const string PurchasingRead = "purchasing.read";
+    public const string PurchasingManage = "purchasing.manage";
     public const string ReportsRead = "reports.read";
     public const string AuditRead = "audit.read";
 
@@ -50,6 +52,8 @@ public static class Permissions
         [DispatchesShip] = "Confirm shipment (deducts stock)",
         [DispatchesDeliver] = "Record delivery and proof of delivery",
         [DispatchesCancel] = "Cancel dispatches",
+        [PurchasingRead] = "View suppliers, purchase orders and reorder suggestions",
+        [PurchasingManage] = "Manage suppliers; create, place, close and cancel purchase orders",
         [ReportsRead] = "View reports",
         [AuditRead] = "View the audit log",
     };

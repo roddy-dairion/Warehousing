@@ -87,8 +87,9 @@ public sealed class ReceiptTests(ApiFactory api) : IClassFixture<ApiFactory>
         var p = await kit.ProductAsync(lots: true, expiry: true);
         var bin = await kit.BinAsync();
 
-        (await (await kit.Admin.PostJsonAsync("/api/v1/receipts", new { warehouseId = kit.WarehouseId, lines = new[] { InventoryKit.Line(p.Id, 5, bin) } }))
-            .ProblemAsync(HttpStatusCode.UnprocessableEntity)).Code().ShouldBe("lot.required");
+        // A draft may be saved before the lot is known (counting first); posting needs it.
+        var noLot = await kit.DraftReceiptAsync(InventoryKit.Line(p.Id, 5, bin));
+        (await (await kit.Admin.PostAsync($"/api/v1/receipts/{noLot.Id}/post")).ProblemAsync(HttpStatusCode.UnprocessableEntity)).Code().ShouldBe("lot.required");
 
         // A new lot needs its expiry date when posting.
         var noExpiry = await kit.DraftReceiptAsync(InventoryKit.Line(p.Id, 5, bin, "l-001"));

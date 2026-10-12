@@ -20,12 +20,14 @@ public static class Roles
             Security.Permissions.DispatchesRead, Security.Permissions.DispatchesCreate, Security.Permissions.DispatchesApprove,
             Security.Permissions.DispatchesPick, Security.Permissions.DispatchesShip, Security.Permissions.DispatchesDeliver,
             Security.Permissions.DispatchesCancel, Security.Permissions.ReportsRead,
+            Security.Permissions.PurchasingRead, Security.Permissions.PurchasingManage,
         ]),
         new(WarehouseOperator, "Warehouse operator",
         [
             Security.Permissions.ProductsRead, Security.Permissions.InventoryRead, Security.Permissions.InventoryReceive,
             Security.Permissions.InventoryAdjust, Security.Permissions.DispatchesRead, Security.Permissions.DispatchesCreate,
             Security.Permissions.DispatchesPick, Security.Permissions.DispatchesDeliver,
+            Security.Permissions.PurchasingRead,
         ]),
     ];
 }

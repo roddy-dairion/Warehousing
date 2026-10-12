@@ -67,10 +67,11 @@ public sealed class StockRules(IApplicationDbContext db)
     }
 
     /// <summary>Lot-tracked products need a lot number; others must not have one. Products with expiry need an expiry date for new lots.</summary>
-    public static void CheckLot(StockProduct sp, string? lotNo, DateOnly? expiryDate, bool requireExpiry)
+    /// <param name="requireLot">False for drafts: the lot may still be filled in before posting.</param>
+    public static void CheckLot(StockProduct sp, string? lotNo, DateOnly? expiryDate, bool requireExpiry, bool requireLot = true)
     {
         var p = sp.Product;
-        if (p.IsLotTracked && string.IsNullOrWhiteSpace(lotNo))
+        if (requireLot && p.IsLotTracked && string.IsNullOrWhiteSpace(lotNo))
         {
             throw new DomainRuleException("lot.required", $"{p.Sku} is lot-tracked: enter the lot number.");
         }

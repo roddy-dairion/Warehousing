@@ -62,7 +62,8 @@ const STATUSES: { value: ReceiptStatus; label: string }[] = [
             <tr class="clickable-row" (click)="open(r)" (keydown.enter)="open(r)" tabindex="0">
               <td class="code">{{ r.number }}</td>
               <td>{{ r.receiptDate | date: 'dd.MM.yyyy' }}</td>
-              <td>{{ r.supplierName ?? '—' }}@if (r.supplierReference) { <span class="muted"> · {{ r.supplierReference }}</span> }</td>
+              <td>{{ r.supplierName ?? '—' }}@if (r.supplierReference) { <span class="muted"> · {{ r.supplierReference }}</span> }
+                @if (r.purchaseOrderNumber) { <div class="muted">{{ r.purchaseOrderNumber }}</div> }</td>
               <td class="num">{{ r.lineCount }}</td>
               <td><wh-doc-status kind="receipt" [status]="r.status" /></td>
             </tr>

@@ -37,7 +37,11 @@ public sealed record ProductDto(
     IReadOnlyList<ProductBarcodeDto> Barcodes,
     DateTimeOffset CreatedAt,
     DateTimeOffset UpdatedAt,
-    uint Version);
+    uint Version,
+    decimal? MaxStockQty,
+    Guid? DefaultSupplierId,
+    string? DefaultSupplierName,
+    Guid? PurchaseUnitId);
 
 public sealed class ProductListQuery : Common.ListQuery
 {
@@ -59,7 +63,10 @@ public sealed record CreateProductRequest(
     bool HasExpiry,
     int? ShelfLifeDays,
     IReadOnlyList<NewUnitRequest>? Units,
-    IReadOnlyList<NewBarcodeRequest>? Barcodes);
+    IReadOnlyList<NewBarcodeRequest>? Barcodes,
+    decimal? MaxStockQty = null,
+    Guid? DefaultSupplierId = null,
+    Guid? PurchaseUnitId = null);
 
 public sealed record UpdateProductRequest(
     string Name,
@@ -70,7 +77,10 @@ public sealed record UpdateProductRequest(
     bool IsLotTracked,
     bool HasExpiry,
     int? ShelfLifeDays,
-    uint Version);
+    uint Version,
+    decimal? MaxStockQty = null,
+    Guid? DefaultSupplierId = null,
+    Guid? PurchaseUnitId = null);
 
 public sealed record AddUnitRequest(Guid UnitId, decimal FactorToBase, uint Version);
 

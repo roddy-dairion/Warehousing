@@ -12,7 +12,7 @@ namespace Inventory.Infrastructure.Services;
 internal sealed class StockStore(AppDbContext db, ICurrentUser user, TimeProvider clock) : IStockStore
 {
     /// <summary>Tables whose rows may be locked through <see cref="LockRowAsync"/> (table names cannot be parameters).</summary>
-    private static readonly HashSet<string> LockableTables = ["goods_receipts", "stock_adjustments", "stock_transfers", "product_lots", "dispatches"];
+    private static readonly HashSet<string> LockableTables = ["goods_receipts", "stock_adjustments", "stock_transfers", "product_lots", "dispatches", "purchase_orders"];
 
     public async Task<IReadOnlyDictionary<BalanceKey, InventoryBalance>> LockBalancesAsync(IReadOnlyCollection<BalanceKey> keys, bool createMissing, CancellationToken cancellationToken)
     {

@@ -56,6 +56,8 @@ export interface StockSummaryDto {
   /** Available stock in pickable bins and usable lots. */
   sellable: number;
   minStockQty: number | null;
+  /** Still expected on open purchase orders for this warehouse. */
+  onOrder: number;
   isLow: boolean;
 }
 
@@ -166,6 +168,8 @@ export interface ReceiptListItemDto {
   lineCount: number;
   createdAt: string;
   postedAt: string | null;
+  purchaseOrderId: string | null;
+  purchaseOrderNumber: string | null;
 }
 
 export interface ReceiptLineDto {
@@ -185,6 +189,8 @@ export interface ReceiptLineDto {
   lotNo: string | null;
   expiryDate: string | null;
   notes: string | null;
+  /** The purchase order line for the same product (receipts for an order). */
+  purchaseOrderLineId: string | null;
 }
 
 export interface ReceiptDto {
@@ -206,6 +212,8 @@ export interface ReceiptDto {
   reversedByName: string | null;
   reversalReason: string | null;
   version: number;
+  purchaseOrderId: string | null;
+  purchaseOrderNumber: string | null;
 }
 
 export interface ReceiptLineInput {
@@ -693,6 +701,8 @@ export interface WarehouseDashboardDto {
   recentMovements: { occurredAt: string; type: MovementType; sku: string; productName: string; locationCode: string; lotNo: string | null; quantity: number; sourceNumber: string | null }[] | null;
   failedDocuments: number | null;
   failedEmails: number | null;
+  /** Purchase orders; `toReorder` = products below minimum and not covered by open orders. */
+  purchasing: { draft: number; open: number; overdue: number; toReorder: number } | null;
 }
 
 export interface ReportInfoDto {
@@ -726,4 +736,158 @@ export interface AuditEntryDto {
 /** Labels for status values shown in tags. */
 export function dispatchStatusInfo(status: DispatchStatus): (typeof DISPATCH_STATUSES)[number] {
   return DISPATCH_STATUSES.find((s) => s.value === status) ?? DISPATCH_STATUSES[0]!;
+}
+
+// ---- Purchasing ---------------------------------------------------------------------------------
+
+export type PurchaseOrderStatus = 'draft' | 'ordered' | 'partiallyReceived' | 'received' | 'closed' | 'cancelled';
+
+export interface SupplierListItemDto {
+  id: string;
+  code: string;
+  name: string;
+  contactName: string | null;
+  phone: string | null;
+  email: string | null;
+  city: string | null;
+  leadTimeDays: number | null;
+  isActive: boolean;
+}
+
+export interface SupplierDto {
+  id: string;
+  code: string;
+  name: string;
+  contactName: string | null;
+  phone: string | null;
+  email: string | null;
+  addressLine1: string | null;
+  addressLine2: string | null;
+  city: string | null;
+  country: string | null;
+  leadTimeDays: number | null;
+  notes: string | null;
+  isActive: boolean;
+  version: number;
+}
+
+export interface SupplierInput {
+  name: string;
+  contactName: string | null;
+  phone: string | null;
+  email: string | null;
+  addressLine1: string | null;
+  addressLine2: string | null;
+  city: string | null;
+  country: string | null;
+  leadTimeDays: number | null;
+  notes: string | null;
+}
+
+export interface PurchaseOrderListItemDto {
+  id: string;
+  number: string;
+  warehouseId: string;
+  warehouseCode: string;
+  supplierId: string;
+  supplierCode: string;
+  supplierName: string;
+  orderDate: string;
+  expectedDate: string | null;
+  supplierReference: string | null;
+  status: PurchaseOrderStatus;
+  lineCount: number;
+  /** Share of the ordered quantity received so far, 0–100. */
+  receivedPercent: number;
+  isOverdue: boolean;
+  createdAt: string;
+}
+
+export interface PurchaseOrderLineDto {
+  id: string;
+  lineNo: number;
+  productId: string;
+  sku: string;
+  productName: string;
+  productUnitId: string | null;
+  unitCode: string;
+  factorToBase: number;
+  enteredQuantity: number;
+  /** Base units (also receivedQuantity and outstanding). */
+  quantity: number;
+  baseUnitCode: string;
+  receivedQuantity: number;
+  outstanding: number;
+  notes: string | null;
+}
+
+export interface PurchaseOrderDto {
+  id: string;
+  number: string;
+  warehouseId: string;
+  warehouseCode: string;
+  supplierId: string;
+  supplierCode: string;
+  supplierName: string;
+  supplierEmail: string | null;
+  orderDate: string;
+  expectedDate: string | null;
+  supplierReference: string | null;
+  notes: string | null;
+  status: PurchaseOrderStatus;
+  isOverdue: boolean;
+  lines: PurchaseOrderLineDto[];
+  receipts: { id: string; number: string; receiptDate: string; status: ReceiptStatus }[];
+  createdAt: string;
+  createdByName: string | null;
+  orderedAt: string | null;
+  orderedByName: string | null;
+  closedAt: string | null;
+  closedByName: string | null;
+  closeReason: string | null;
+  version: number;
+}
+
+export interface PurchaseOrderLineInput {
+  productId: string;
+  productUnitId: string | null;
+  quantity: number;
+  notes: string | null;
+}
+
+export interface PurchaseOrderInput {
+  supplierId: string;
+  orderDate: string | null;
+  expectedDate: string | null;
+  supplierReference: string | null;
+  notes: string | null;
+  lines: PurchaseOrderLineInput[] | null;
+}
+
+export interface ReorderSuggestionDto {
+  productId: string;
+  sku: string;
+  productName: string;
+  baseUnitCode: string;
+  minStockQty: number;
+  maxStockQty: number | null;
+  onHand: number;
+  reserved: number;
+  available: number;
+  onOrder: number;
+  /** Base units; 0 = already covered by open orders. */
+  suggestedQuantity: number;
+  purchaseProductUnitId: string | null;
+  purchaseUnitCode: string;
+  purchaseFactor: number;
+  suggestedPurchaseQuantity: number;
+  supplierId: string | null;
+  supplierCode: string | null;
+  supplierName: string | null;
+  supplierLeadTimeDays: number | null;
+  openOrderNumbers: string[];
+}
+
+export interface PurchasingSettingsDto {
+  lowStockAlertEmails: string | null;
 }

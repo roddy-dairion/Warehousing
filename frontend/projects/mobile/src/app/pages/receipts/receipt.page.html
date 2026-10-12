@@ -14,6 +14,10 @@
     <div class="wh-empty"><ion-spinner /></div>
   } @else {
     @if (r && !editable()) { <p class="wh-section wh-muted">This receipt is {{ r.status }} and can no longer be changed.</p> }
+    @if (r?.purchaseOrderNumber) {
+      <p class="wh-section wh-muted" data-testid="receipt-po">For order {{ r!.purchaseOrderNumber }}.@if (editable()) { Quantities are pre-filled with what is expected:
+        correct them to what actually arrived. }</p>
+    }
 
     <div class="wh-section fields">
       <ion-input label="Supplier" labelPlacement="stacked" fill="outline" [(ngModel)]="supplierName" (ionInput)="dirty.set(true)"
@@ -38,7 +42,7 @@
             <ion-button fill="clear" color="danger" size="small" (click)="remove(l)" aria-label="Remove line"><ion-icon slot="icon-only" name="trash-outline" /></ion-button>
           }
         </div>
-        @if (l.expected !== null) { <div class="wh-muted">Expected {{ qty(l.expected) }} {{ l.product.baseUnitCode }}</div> }
+        @if (l.expected !== null) { <div class="wh-muted">Expected {{ qty(l.expected) }} {{ unitCode(l) }}</div> }
         <wh-qty-stepper [label]="'Counted (' + unitLabel(l) + ')'" [value]="l.quantity" (valueChange)="update(l.key, { quantity: $event })"
           [disabled]="!editable() || !canEdit" [testId]="'receipt-qty-' + l.product.sku" />
         <wh-scan-field label="Bin (empty = RECEIVING)" placeholder="Scan the bin label" prompt="Scan the bin label" [keep]="true" [value]="binCode(l)"

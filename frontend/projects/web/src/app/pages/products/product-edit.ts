@@ -12,7 +12,7 @@ import { TableModule } from 'primeng/table';
 import { Tag } from 'primeng/tag';
 import { Tooltip } from 'primeng/tooltip';
 import { Skeleton } from 'primeng/skeleton';
-import { ApiError, AuthService, CatalogApi, CategoryDto, Permissions, ProductDto, ProductsApi, UnitDto } from '@wh/shared';
+import { ApiError, AuthService, CatalogApi, CategoryDto, Permissions, ProductDto, ProductsApi, SuppliersApi, UnitDto } from '@wh/shared';
 import { ApiFeedback, nullIfBlank } from '../../ui/api-feedback';
 import { FieldError } from '../../ui/field-error';
 import { StatusTag } from '../../ui/status-tag';
@@ -27,6 +27,7 @@ import { LoadError } from '../../ui/load-error';
 export class ProductEdit implements OnInit, OnDestroy {
   private readonly api = inject(ProductsApi);
   private readonly catalog = inject(CatalogApi);
+  private readonly suppliersApi = inject(SuppliersApi);
   private readonly feedback = inject(ApiFeedback);
   private readonly confirm = inject(ConfirmationService);
   private readonly router = inject(Router);
@@ -43,6 +44,7 @@ export class ProductEdit implements OnInit, OnDestroy {
   protected readonly saving = signal(false);
   protected readonly busy = signal(false);
   protected readonly imageUrl = signal<string | null>(null);
+  protected readonly suppliers = signal<{ id: string; label: string }[]>([]);
   protected readonly isNew = computed(() => !this.id());
 
   private readonly fb = inject(FormBuilder).nonNullable;
@@ -53,6 +55,9 @@ export class ProductEdit implements OnInit, OnDestroy {
     categoryId: this.fb.control<string | null>(null),
     baseUnitId: ['', Validators.required],
     minStockQty: this.fb.control<number | null>(null, Validators.min(0)),
+    maxStockQty: this.fb.control<number | null>(null, Validators.min(0)),
+    defaultSupplierId: this.fb.control<string | null>(null),
+    purchaseUnitId: this.fb.control<string | null>(null),
     isLotTracked: [false],
     hasExpiry: [false],
     shelfLifeDays: this.fb.control<number | null>(null, Validators.min(1)),
@@ -83,6 +88,13 @@ export class ProductEdit implements OnInit, OnDestroy {
     return [{ id: null as string | null, label: `${p.baseUnitCode} (single)` }, ...p.units.map((u) => ({ id: u.unitId as string | null, label: `${u.unitCode} (${u.factorToBase} ${p.baseUnitCode})` }))];
   });
 
+  /** Units the product can be ordered in: the base unit and its pack units. */
+  protected readonly purchaseUnitChoices = computed(() => {
+    const p = this.product();
+    if (!p) return [];
+    return [{ id: null as string | null, label: p.baseUnitCode }, ...p.units.map((u) => ({ id: u.unitId as string | null, label: `${u.unitCode} (${u.factorToBase} ${p.baseUnitCode})` }))];
+  });
+
   async ngOnInit(): Promise<void> {
     this.form.controls.hasExpiry.valueChanges.subscribe((v) => {
       if (v) this.form.controls.isLotTracked.setValue(true);
@@ -105,6 +117,10 @@ export class ProductEdit implements OnInit, OnDestroy {
     try {
       const [units, categories] = await Promise.all([this.catalog.units(), this.catalog.categories()]);
       this.units.set(units);
+      if (this.canManage) {
+        const list = await this.suppliersApi.list({ page: 1, pageSize: 200, isActive: true, sortBy: 'name' });
+        this.suppliers.set(list.items.map((x) => ({ id: x.id, label: `${x.name} (${x.code})` })));
+      }
       this.categories.set(categories.filter((c) => c.isActive));
       const id = this.id();
       if (id) {
@@ -137,6 +153,9 @@ export class ProductEdit implements OnInit, OnDestroy {
       isLotTracked: v.isLotTracked,
       hasExpiry: v.hasExpiry,
       shelfLifeDays: v.hasExpiry ? v.shelfLifeDays : null,
+      maxStockQty: v.maxStockQty,
+      defaultSupplierId: v.defaultSupplierId,
+      purchaseUnitId: v.purchaseUnitId,
     };
     try {
       const current = this.product();
@@ -302,6 +321,10 @@ export class ProductEdit implements OnInit, OnDestroy {
 
   private setProduct(p: ProductDto): void {
     this.product.set(p);
+    // The usual supplier stays visible even if it is inactive, or the list could not be loaded.
+    if (p.defaultSupplierId && !this.suppliers().some((x) => x.id === p.defaultSupplierId)) {
+      this.suppliers.update((list) => [...list, { id: p.defaultSupplierId!, label: p.defaultSupplierName ?? '—' }]);
+    }
     this.form.reset({
       sku: p.sku,
       name: p.name,
@@ -309,6 +332,9 @@ export class ProductEdit implements OnInit, OnDestroy {
       categoryId: p.categoryId,
       baseUnitId: p.baseUnitId,
       minStockQty: p.minStockQty,
+      maxStockQty: p.maxStockQty,
+      defaultSupplierId: p.defaultSupplierId,
+      purchaseUnitId: p.purchaseUnitId,
       isLotTracked: p.isLotTracked,
       hasExpiry: p.hasExpiry,
       shelfLifeDays: p.shelfLifeDays,

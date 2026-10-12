@@ -28,6 +28,8 @@ public sealed class GoodsReceipt : Entity, IAuditable
     public string? SupplierName { get; private set; }
     public string? SupplierReference { get; private set; }
     public string? Notes { get; private set; }
+    /// <summary>The purchase order this delivery is for (set when the receipt is created; null = no order).</summary>
+    public Guid? PurchaseOrderId { get; private set; }
     public ReceiptStatus Status { get; private set; } = ReceiptStatus.Draft;
     public DateTimeOffset? PostedAt { get; private set; }
     public Guid? PostedBy { get; private set; }
@@ -41,9 +43,9 @@ public sealed class GoodsReceipt : Entity, IAuditable
     public DateTimeOffset UpdatedAt { get; set; }
     public Guid? UpdatedBy { get; set; }
 
-    public static GoodsReceipt Create(string number, Guid warehouseId, DateOnly receiptDate)
+    public static GoodsReceipt Create(string number, Guid warehouseId, DateOnly receiptDate, Guid? purchaseOrderId = null)
     {
-        var r = new GoodsReceipt { Number = number, WarehouseId = warehouseId };
+        var r = new GoodsReceipt { Number = number, WarehouseId = warehouseId, PurchaseOrderId = purchaseOrderId };
         r.SetHeader(receiptDate, null, null, null);
         return r;
     }
@@ -126,6 +128,8 @@ public sealed class GoodsReceiptLine : Entity
     public DateOnly? ExpiryDate { get; private set; }
     /// <summary>Set when posted.</summary>
     public Guid? LotId { get; private set; }
+    /// <summary>The purchase order line for the same product (receipts linked to an order); received quantities are recorded on it when posted.</summary>
+    public Guid? PurchaseOrderLineId { get; private set; }
     public string? Notes { get; private set; }
 
     public static GoodsReceiptLine Create(Guid productId, Guid? productUnitId, decimal enteredQuantity, decimal baseQuantity,
@@ -149,4 +153,6 @@ public sealed class GoodsReceiptLine : Entity
     }
 
     public void SetLot(Guid lotId) => LotId = lotId;
+
+    public void LinkOrderLine(Guid? purchaseOrderLineId) => PurchaseOrderLineId = purchaseOrderLineId;
 }

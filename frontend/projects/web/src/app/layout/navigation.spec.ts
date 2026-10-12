@@ -11,7 +11,7 @@ describe('visibleNavigation', () => {
 
   it('shows every group to a user holding all permissions', () => {
     const nav = visibleNavigation(() => true);
-    expect(nav.map((g) => g.label)).toEqual(['Operations', 'Master data', 'Administration']);
+    expect(nav.map((g) => g.label)).toEqual(['Operations', 'Purchasing', 'Master data', 'Administration']);
   });
 
   it('shows company and template settings only with settings.manage', () => {

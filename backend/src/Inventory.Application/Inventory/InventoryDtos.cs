@@ -53,6 +53,8 @@ public sealed record StockSummaryDto
     /// <summary>Available stock in pickable bins and usable lots (what a dispatch could reserve today).</summary>
     public decimal Sellable { get; init; }
     public decimal? MinStockQty { get; init; }
+    /// <summary>Still expected on open purchase orders for this warehouse.</summary>
+    public decimal OnOrder { get; init; }
     /// <summary>Available is below the product's minimum stock.</summary>
     public bool IsLow { get; init; }
 }
@@ -62,7 +64,7 @@ public sealed class StockSummaryQuery : ListQuery
     public Guid WarehouseId { get; set; }
     public Guid? CategoryId { get; set; }
     public bool LowStockOnly { get; set; }
-    /// <summary>Only products with stock on hand (default false: products with a minimum stock also show at zero).</summary>
+    /// <summary>Only products with stock on hand (default false: products with a minimum stock or on order also show at zero).</summary>
     public bool OnlyWithStock { get; set; }
 }
 

@@ -18,6 +18,10 @@
             Created {{ r.createdAt | date: 'dd.MM.yyyy HH:mm' }} by {{ r.createdByName ?? '—' }}
             @if (r.postedAt) { · posted {{ r.postedAt | date: 'dd.MM.yyyy HH:mm' }} by {{ r.postedByName }} }
           </p>
+          @if (r.purchaseOrderId) {
+            <p>For purchase order <a [routerLink]="['/purchasing/orders', r.purchaseOrderId]" class="code">{{ r.purchaseOrderNumber }}</a>:
+              the received quantities are recorded on the order when the receipt is posted.</p>
+          }
         } @else {
           <h1>New goods receipt</h1>
           <p>Lines without a bin go to the RECEIVING area; move them to shelves afterwards with a bin move.</p>

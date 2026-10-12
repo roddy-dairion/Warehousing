@@ -1,6 +1,6 @@
 import { Component, computed, input } from '@angular/core';
 import { Tag } from 'primeng/tag';
-import { AdjustmentStatus, dispatchStatusInfo, DispatchStatus, ReceiptStatus } from '@wh/shared';
+import { AdjustmentStatus, dispatchStatusInfo, DispatchStatus, PurchaseOrderStatus, ReceiptStatus } from '@wh/shared';
 
 type Severity = 'secondary' | 'info' | 'warn' | 'success' | 'danger' | 'contrast';
 
@@ -19,14 +19,25 @@ const ADJUSTMENT: Record<AdjustmentStatus, [string, Severity]> = {
   cancelled: ['Cancelled', 'secondary'],
 };
 
-/** Status tag for receipts, adjustments and dispatches. */
+const PURCHASE_ORDER: Record<PurchaseOrderStatus, [string, Severity]> = {
+  draft: ['Draft', 'secondary'],
+  ordered: ['Ordered', 'info'],
+  partiallyReceived: ['Partially received', 'warn'],
+  received: ['Received', 'success'],
+  closed: ['Closed', 'contrast'],
+  cancelled: ['Cancelled', 'secondary'],
+};
+
+export const PURCHASE_ORDER_STATUSES = (Object.keys(PURCHASE_ORDER) as PurchaseOrderStatus[]).map((value) => ({ value, label: PURCHASE_ORDER[value][0] }));
+
+/** Status tag for receipts, adjustments, dispatches and purchase orders. */
 @Component({
   selector: 'wh-doc-status',
   imports: [Tag],
   template: `<p-tag [value]="info()[0]" [severity]="info()[1]" />`,
 })
 export class DocStatus {
-  readonly kind = input.required<'receipt' | 'adjustment' | 'dispatch'>();
+  readonly kind = input.required<'receipt' | 'adjustment' | 'dispatch' | 'purchaseOrder'>();
   readonly status = input.required<string>();
 
   protected readonly info = computed<[string, Severity]>(() => {
@@ -36,6 +47,8 @@ export class DocStatus {
         return RECEIPT[s as ReceiptStatus] ?? [s, 'secondary'];
       case 'adjustment':
         return ADJUSTMENT[s as AdjustmentStatus] ?? [s, 'secondary'];
+      case 'purchaseOrder':
+        return PURCHASE_ORDER[s as PurchaseOrderStatus] ?? [s, 'secondary'];
       default: {
         const d = dispatchStatusInfo(s as DispatchStatus);
         return [d.label, d.severity];
