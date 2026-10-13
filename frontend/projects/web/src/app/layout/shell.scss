@@ -32,13 +32,11 @@
   font-size: 1.0625rem;
 }
 
-/* The one loud element: a floor-marking stripe. */
+/* The HELLO Chérie mountain. */
 .brand-mark {
-  width: 1.75rem;
-  height: 1.75rem;
-  border-radius: 4px;
-  background: repeating-linear-gradient(-45deg, var(--wh-hazard) 0 6px, var(--wh-slate) 6px 12px);
-  box-shadow: inset 0 0 0 2px var(--wh-hazard);
+  width: 3.5rem;
+  height: auto;
+  flex: none;
 }
 
 .nav-group + .nav-group {

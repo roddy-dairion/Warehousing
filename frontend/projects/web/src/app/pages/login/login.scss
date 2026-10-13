@@ -14,12 +14,11 @@
   gap: 0.75rem;
 }
 
-.stripe {
+.mountain {
   display: block;
-  height: 0.75rem;
-  width: 8rem;
-  margin-bottom: 1.5rem;
-  background: repeating-linear-gradient(-45deg, var(--wh-hazard) 0 10px, var(--wh-slate) 10px 20px);
+  width: 11rem;
+  height: auto;
+  margin-bottom: 1.25rem;
 }
 
 .product {
@@ -85,7 +84,8 @@ h1 {
     padding: 1.5rem 1rem;
   }
 
-  .stripe {
+  .mountain {
+    width: 7rem;
     margin-bottom: 0.5rem;
   }
 

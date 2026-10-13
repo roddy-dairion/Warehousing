@@ -1,4 +1,8 @@
+using System.Security.Cryptography;
+using System.Text;
+using Inventory.Application.Common;
 using Inventory.Application.Documents;
+using Inventory.Domain.Files;
 using Inventory.Domain.Documents;
 using Inventory.Domain.Products;
 using Inventory.Domain.Security;
@@ -36,10 +40,23 @@ public sealed class DatabaseSeeder(
     UserManager<AppUser> users,
     RoleManager<AppRole> roles,
     TimeProvider clock,
+    IFileStorage files,
     IOptions<SeedOptions> options,
     ILogger<DatabaseSeeder> logger)
 {
     private readonly SeedOptions _options = options.Value;
+
+    /// <summary>
+    /// SHA-256 of earlier built-in templates (normalised line endings, trimmed). A current template still equal to one of
+    /// these was never edited, so it is replaced by the new built-in version at start-up; edited templates are left alone.
+    /// </summary>
+    private static readonly Dictionary<DocumentType, string[]> PreviousDefaults = new()
+    {
+        [DocumentType.DeliveryNote] = ["31b8c8fb9252cfdcb8ba7f8248fc32be755d315470b412226d2868d85be4cada"],
+        [DocumentType.PackingSlip] = ["5ec0b9c920ac26d9d848715701a287dff9183bdb8f0a8562e02853e7530314bc"],
+    };
+
+    private const string LogoOwnerType = "company_logo";
 
     public async Task SeedAsync(CancellationToken cancellationToken)
     {
@@ -70,7 +87,54 @@ public sealed class DatabaseSeeder(
             }
         }
         await db.SaveChangesAsync(cancellationToken);
+        await UpgradeUneditedTemplatesAsync(cancellationToken);
+        await EnsureDefaultLogoAsync(cancellationToken);
     }
+
+    /// <summary>Replaces current templates that are still an earlier built-in version (never edited) with the new built-in one.</summary>
+    private async Task UpgradeUneditedTemplatesAsync(CancellationToken cancellationToken)
+    {
+        foreach (var (type, hashes) in PreviousDefaults)
+        {
+            var current = await db.DocumentTemplates.SingleOrDefaultAsync(t => t.Type == type && t.IsCurrent, cancellationToken);
+            if (current is null || !hashes.Contains(Hash(current.Html))) continue;
+            var html = TemplateService.DefaultHtml(type);
+            if (Hash(html) == Hash(current.Html)) continue;
+            var next = await db.DocumentTemplates.Where(t => t.Type == type).MaxAsync(t => t.Version, cancellationToken) + 1;
+            current.Retire();
+            await db.SaveChangesAsync(cancellationToken); // only one current version per type
+            db.DocumentTemplates.Add(DocumentTemplate.Create(type, next, html, "Updated built-in template (logo header)", null, clock.GetUtcNow()));
+            await db.SaveChangesAsync(cancellationToken);
+            logger.LogInformation("Updated the unedited {Type} template to the new built-in version {Version}", type, next);
+        }
+    }
+
+    /// <summary>
+    /// Sets the built-in HELLO Chérie logo as the company logo the first time, when no logo was ever uploaded. A logo removed
+    /// or replaced by an administrator is never put back.
+    /// </summary>
+    private async Task EnsureDefaultLogoAsync(CancellationToken cancellationToken)
+    {
+        var company = await db.CompanyProfiles.FirstOrDefaultAsync(cancellationToken);
+        if (company is null || company.LogoFileId is not null) return;
+        if (await db.StoredFiles.AnyAsync(f => f.OwnerType == LogoOwnerType, cancellationToken)) return;
+        await using var resource = typeof(DatabaseSeeder).Assembly.GetManifestResourceStream("Branding.company-logo.png");
+        if (resource is null) return;
+        using var buffer = new MemoryStream();
+        await resource.CopyToAsync(buffer, cancellationToken);
+        var bytes = buffer.ToArray();
+        using var content = new MemoryStream(bytes);
+        var key = await files.SaveAsync(content, cancellationToken);
+        var stored = StoredFile.Create("hellocherie-logo.png", "image/png", bytes.Length, key, Convert.ToHexStringLower(SHA256.HashData(bytes)),
+            LogoOwnerType, company.Id, clock.GetUtcNow(), null);
+        db.StoredFiles.Add(stored);
+        company.SetLogo(stored.Id);
+        await db.SaveChangesAsync(cancellationToken);
+        logger.LogInformation("Set the built-in company logo");
+    }
+
+    private static string Hash(string html) =>
+        Convert.ToHexStringLower(SHA256.HashData(Encoding.UTF8.GetBytes(html.Replace("\r\n", "\n").Trim())));
 
     /// <returns>Permission codes that did not exist yet (added by a new release).</returns>
     private async Task<List<string>> SyncPermissionsAsync(CancellationToken cancellationToken)

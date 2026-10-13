@@ -51,4 +51,5 @@ Only PostgreSQL runs in Docker. The API and the Angular apps run directly from V
 * Phase 8 (quality assurance): done for everything that can be automated. Authorization matrix over all 130 endpoints, branch isolation, concurrency soak, security review with 4 fixes, dependency audit. 198 backend and 52 frontend tests. Real-device scanning checks still open (doc 12 §6).
 * Purchasing (added after Phase 8): suppliers, purchase orders, receiving against an order, "on order" quantities, reorder suggestions and an optional daily low-stock email. 205 backend and 52 frontend tests; browser walkthrough in `tools/e2e/purchasing_smoke.py`.
 * Demo data: `python tools/seed/hello_cherie_demo.py` (HELLO Cherie toilet-roll packs, stock, customers, dispatches, a supplier and a purchase order).
+* Branding: HELLO Chérie logo on the PDF documents, the mountain in the web and phone apps, the phone app icon and splash screens. All generated from `branding/source` by `python branding/make_brand_assets.py`.
 * Next: Phase 9 (deployment to the cloud, AWS or Azure).
