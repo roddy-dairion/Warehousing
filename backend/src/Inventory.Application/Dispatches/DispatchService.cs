@@ -146,6 +146,9 @@ public sealed class DispatchService(
 
     // ---- Approval (reserves stock) ------------------------------------------------------------
 
+    /// <summary>Someone else must approve, unless the setting is off or the user may approve their own dispatches (administrators by default).</summary>
+    private bool RequireDifferentApprover => options.Value.RequireDifferentApprover && !user.HasPermission(Permissions.DispatchesApproveOwn);
+
     /// <summary>Approves and reserves stock for every line (FEFO), all or nothing. Shortages return 409 with the list.</summary>
     public Task<DispatchDto> ApproveAsync(Guid id, string? note, CancellationToken cancellationToken) =>
         TransitionAsync(id, "dispatch.approved", async d =>
@@ -154,7 +157,7 @@ public sealed class DispatchService(
             if (!customer.IsActive) throw new DomainRuleException("customer.inactive", $"Customer {customer.Reference} is inactive.");
             foreach (var line in d.Lines) await rules.ProductAsync(line.ProductId, cancellationToken);
 
-            d.Approve(user.IdOrNull, clock.GetUtcNow(), options.Value.RequireDifferentApprover, note);
+            d.Approve(user.IdOrNull, clock.GetUtcNow(), RequireDifferentApprover, note);
             await reservations.ReserveAsync(SourceTypes.Dispatch, d.Id, d.WarehouseId,
                 d.Lines.Select(l => new ReservationRequest(l.Id, l.ProductId, l.Quantity)).ToList(), d.RequestedDate, cancellationToken);
         }, cancellationToken);
@@ -395,7 +398,7 @@ public sealed class DispatchService(
             CanSubmit: s == DispatchStatus.Draft && user.HasPermission(Permissions.DispatchesCreate),
             CanReturn: s == DispatchStatus.Submitted && user.HasPermission(Permissions.DispatchesApprove),
             CanApprove: s == DispatchStatus.Submitted && user.HasPermission(Permissions.DispatchesApprove)
-                && (!options.Value.RequireDifferentApprover || (me != d.CreatedBy && me != d.SubmittedBy)),
+                && (!RequireDifferentApprover || (me != d.CreatedBy && me != d.SubmittedBy)),
             CanStartPicking: s == DispatchStatus.Approved && user.HasPermission(Permissions.DispatchesPick),
             CanPick: s is DispatchStatus.Approved or DispatchStatus.Picking && user.HasPermission(Permissions.DispatchesPick),
             CanCompletePicking: s == DispatchStatus.Picking && user.HasPermission(Permissions.DispatchesPick),

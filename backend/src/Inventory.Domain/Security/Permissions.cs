@@ -21,6 +21,8 @@ public static class Permissions
     public const string DispatchesRead = "dispatches.read";
     public const string DispatchesCreate = "dispatches.create";
     public const string DispatchesApprove = "dispatches.approve";
+    /// <summary>Approve a dispatch one created or submitted oneself (otherwise someone else must approve it).</summary>
+    public const string DispatchesApproveOwn = "dispatches.approve.own";
     public const string DispatchesPick = "dispatches.pick";
     public const string DispatchesShip = "dispatches.ship";
     public const string DispatchesDeliver = "dispatches.deliver";
@@ -48,6 +50,7 @@ public static class Permissions
         [DispatchesRead] = "View dispatches",
         [DispatchesCreate] = "Create, edit and submit dispatches",
         [DispatchesApprove] = "Approve dispatches (reserves stock)",
+        [DispatchesApproveOwn] = "Approve dispatches they created or submitted themselves",
         [DispatchesPick] = "Pick dispatches",
         [DispatchesShip] = "Confirm shipment (deducts stock)",
         [DispatchesDeliver] = "Record delivery and proof of delivery",

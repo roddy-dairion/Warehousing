@@ -32,7 +32,7 @@ Dispatches are scoped to the warehouses the user can access. A dispatch in anoth
 
 * **Submit:** at least one line; each product at most once; products active; customer active with an active delivery address (the chosen one, or the default). Pack quantities are converted to base units (2 CTN = 24 EA).
 * **Approve:**
-  * **The creator or submitter cannot approve** their own dispatch (`Dispatch:RequireDifferentApprover`, Q6).
+  * **The creator or submitter cannot approve** their own dispatch (`Dispatch:RequireDifferentApprover`, Q6), **except users with `dispatches.approve.own`** (administrators by default, added 2026-10-14; it can be given to other roles in Roles).
   * Stock is re-checked and reserved for every line in one transaction.
   * If any line is short, nothing is reserved and the API returns 409 `stock.shortage` with a `shortages` list.
   * Only stock in active pickable bins, from released and unexpired lots, is used.
@@ -140,7 +140,7 @@ Migration: `Dispatch`.
 29 new tests: 18 integration tests against real PostgreSQL that create real PDFs, and 11 unit tests.
 
 * **Full flow:** reserve at approval, deduct once at shipment, history; packing slip PDF; reconciliation clean afterwards.
-* **Approval:** self-approval blocked; shortage reserves nothing (with the shortage list).
+* **Approval:** self-approval blocked (allowed for administrators); shortage reserves nothing (with the shortage list).
 * **Validation:** empty dispatch, duplicate product, missing address; return to draft; edit version conflicts.
 * **Picking:** unknown barcode, wrong product, wrong bin, carton barcode counting, repeated scan id, over-pick, undo; discrepancy report.
 * **Reallocation:** to another bin, then ship.

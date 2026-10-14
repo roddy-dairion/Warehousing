@@ -18,6 +18,7 @@ export const Permissions = {
   DispatchesRead: 'dispatches.read',
   DispatchesCreate: 'dispatches.create',
   DispatchesApprove: 'dispatches.approve',
+  DispatchesApproveOwn: 'dispatches.approve.own',
   DispatchesPick: 'dispatches.pick',
   DispatchesShip: 'dispatches.ship',
   DispatchesDeliver: 'dispatches.deliver',

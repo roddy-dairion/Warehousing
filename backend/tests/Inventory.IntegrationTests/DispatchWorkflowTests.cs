@@ -79,6 +79,13 @@ public sealed class DispatchWorkflowTests(ApiFactory api) : IClassFixture<ApiFac
         (await (await kit.Manager.PostJsonAsync($"/api/v1/dispatches/{own.Id}/approve", new { })).ProblemAsync(HttpStatusCode.Conflict)).Code().ShouldBe("dispatch.self_approval");
         (await kit.Manager2.PostJsonAsync($"/api/v1/dispatches/{own.Id}/approve", new { })).StatusCode.ShouldBe(HttpStatusCode.OK);
 
+        // Administrators may approve their own dispatches (permission dispatches.approve.own).
+        var adminOwn = await (await kit.Admin.PostJsonAsync("/api/v1/dispatches", new { warehouseId = kit.WarehouseId, customerId = customer.Id, lines = new[] { DispatchKit.Line(q.Id, 1) } }))
+            .ReadAsync<DispatchDto>();
+        var submitted = await (await kit.Admin.PostAsync($"/api/v1/dispatches/{adminOwn.Id}/submit")).ReadAsync<DispatchDto>();
+        submitted.Actions.CanApprove.ShouldBeTrue();
+        (await (await kit.Admin.PostJsonAsync($"/api/v1/dispatches/{adminOwn.Id}/approve", new { })).ReadAsync<DispatchDto>()).Status.ShouldBe(DispatchStatus.Approved);
+
         var d = await kit.SubmittedAsync(customer.Id, DispatchKit.Line(q.Id, 10), DispatchKit.Line(p.Id, 6));
         var problem = await (await kit.Manager.PostJsonAsync($"/api/v1/dispatches/{d.Id}/approve", new { })).ProblemAsync(HttpStatusCode.Conflict);
         problem.Code().ShouldBe("stock.shortage");
@@ -87,7 +94,7 @@ public sealed class DispatchWorkflowTests(ApiFactory api) : IClassFixture<ApiFac
         shortage.GetProperty("available").GetDecimal().ShouldBe(5);
 
         (await kit.Manager.GetJsonAsync<DispatchDto>($"/api/v1/dispatches/{d.Id}"))!.Status.ShouldBe(DispatchStatus.Submitted);
-        (await kit.Stock.BalancesAsync(q.Id)).Sum(x => x.Reserved).ShouldBe(1); // only the other dispatch
+        (await kit.Stock.BalancesAsync(q.Id)).Sum(x => x.Reserved).ShouldBe(2); // only the two approved dispatches above
     }
 
     [Fact]
